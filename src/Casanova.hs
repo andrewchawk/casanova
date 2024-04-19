@@ -22,9 +22,8 @@ data Expression =
   -- name of the variable.  Using empty variable names is allowed but is
   -- /not/ recommended.
   Variable String |
-  -- | @ExpInt x@ is the representation of @x@.
-  ExpInt Integer |
-  -- This bit is used to represent fractions.
+  -- This bit is used to represent fractions and integers.  After all, an
+  -- integer is really just a fraction whose denominator is 1.
   ExpRatio (Ratio Integer) |
   -- | This bit is used to represent complex numbers.  Go figure.
   ExpComplex (Complex Double) |
