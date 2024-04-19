@@ -1,6 +1,11 @@
 import Data.Ratio
 import Data.Complex
 
+-- | This datatype facilitates error handling.  @Left@ values indicate -- and
+-- contain useful descriptions of -- errors which are encountered when
+-- computing.  @Right@ values contain legitimate results.
+type Exceptional a = Either String a
+
 -- | Each value of type 'Expression' is a real number /or/ positive or negative
 -- infinity.
 --
@@ -28,4 +33,23 @@ data Expression =
   -- | This value behaves like the negative infinity of the floating-point
   -- numbers.
   NegativeInfinity
+  deriving (Show)
+
+-- | Values of type 'FunctionM1' are convenient, pattern-matching-friendly
+-- representations of functions of type @Expression -> Exceptional Expression@.
+-- @Exceptional@ is used because some of these functions, such as 'Tan', are
+-- undefined at some points.
+data FunctionM1 =
+  -- | This value represents the negation function.
+  Negate |
+  -- | This value represents the ceiling function.
+  Ceiling |
+  -- | This value represents the floor function.
+  Floor |
+  -- | This value represents the sine function.
+  Sin |
+  -- | This value represents the cosine function.
+  Cos |
+  -- | This value represents the tangent function.
+  Tan
   deriving (Show)
