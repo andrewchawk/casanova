@@ -33,7 +33,10 @@ data Expression =
   Infinity |
   -- | This value behaves like the negative infinity of the floating-point
   -- numbers.
-  NegativeInfinity
+  NegativeInfinity |
+  -- | Any such value represents the application of a function to the specified
+  -- expresison.
+  Ap1 FunctionM1 Expression
   deriving (Show)
 
 -- | Values of type 'FunctionM1' are convenient, pattern-matching-friendly
