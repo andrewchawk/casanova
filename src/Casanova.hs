@@ -61,3 +61,36 @@ data FunctionM1 =
   -- | This value represents the tangent function.
   Tan
   deriving (Show)
+
+-- | @subst1 n x f@ is the result of replacing with @x@ all of @f@'s bound
+-- instances of @Variable n@, skipping certain lambda expressions appropriately.
+subst1 :: String
+       -- ^ This argument is the name of the variable which should be replaced.
+       -> Expression
+       -- ^ This value should be substituted for the specified variable.
+       -> Expression
+       -- ^ The output is the result of substituting for the bound instances in
+       -- /this expression/.
+       -> Expression
+subst1 x z f = case f of
+  original@(Variable x') -> if x' == x then z else original
+  -- Lambda expressions demand special handling; if the name of the bound
+  -- variable is @x@, then instances of @x@ in the body of the lambda expression
+  -- should NOT be replaced.  In any case, though, the substitution *does* apply
+  -- to the input of the lambda expression.
+  Ap1 original@(Lambda x' f') m -> Ap1 newLambda $ subst1 x z m
+    where
+    newLambda = if x' == x then original else Lambda x' $ subst1 x z f'
+  Ap1 g m -> Ap1 g $ subst1 x z m
+  m -> m
+
+-- | @subst@ is basically a version of 'subst1' which supports the substitution
+-- of multiple variables.
+subst :: [(String, Expression)]
+      -- ^ Any element of this list is a tuple whose first and second elements
+      -- are the name of the variable for which a value should be substituted
+      -- and the value which should substitute the variable, respectively.
+      -> Expression
+      -- ^ The output is the result of substitution on this expression.
+      -> Expression
+subst pairs e = foldr (uncurry subst1) e pairs
