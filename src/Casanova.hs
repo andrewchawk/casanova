@@ -26,6 +26,11 @@ data Expression =
   -- integer is really just a fraction whose denominator is 1.
   ExpRatio (Ratio Integer) |
   -- | This bit is used to represent complex numbers.  Go figure.
+  --
+  -- Some sort of 'Ratio'-based representation may eventually replace the
+  -- 'Double' representation.  Such replacement would facilitate doing stuff
+  -- with arbitrary-precision complex numbers *and* combining 'ExpRatio',
+  -- 'ExpComplex', 'Infinity', and 'NegativeInfinity'.
   ExpComplex (Complex Double) |
   -- | 'Infinity' is just infinity.  This value behaves like the infinity of the
   -- floating-point numbers.
