@@ -11,7 +11,6 @@ type Exceptional a = Either String a
 --
 -- = The Lack of Support for Floating-Point Numbers
 --
--- With the exception of complex numbers, as 'Complex' depends upon 'RealFloat',
 -- Casanova lacks obvious support for floating-point numbers because
 -- floating-point arithmetic is imprecise, accumulates errors, and can mislead. 
 -- Instead, Casanova uses arbitrary-precision ratios and a dedicated value for
@@ -25,13 +24,6 @@ data Expression =
   -- This bit is used to represent fractions and integers.  After all, an
   -- integer is really just a fraction whose denominator is 1.
   ExpRatio (Ratio Integer) |
-  -- | This bit is used to represent complex numbers.  Go figure.
-  --
-  -- Some sort of 'Ratio'-based representation may eventually replace the
-  -- 'Double' representation.  Such replacement would facilitate doing stuff
-  -- with arbitrary-precision complex numbers *and* combining 'ExpRatio',
-  -- 'ExpComplex', 'Infinity', and 'NegativeInfinity'.
-  ExpComplex (Complex Double) |
   -- | 'Infinity' is just infinity.  This value behaves like the infinity of the
   -- floating-point numbers.
   Infinity |
@@ -149,7 +141,6 @@ simplify :: Expression -> Expression
 simplify o = case o of
   Variable _ -> o
   ExpRatio _ -> o
-  ExpComplex _ -> o
   Infinity -> o
   NegativeInfinity -> o
   Ap1 (Limit n x) m -> case m of
@@ -161,7 +152,6 @@ simplify o = case o of
     Infinity -> ExpRatio $ 0 % 1
     NegativeInfinity -> ExpRatio $ 0 % 1
     ExpRatio _ -> ExpRatio $ 0 % 1
-    ExpComplex _ -> ExpRatio $ 0 % 1
     Variable y -> if y == x then ExpRatio (1 % 1) else o
     Ap1 Sin a -> simplify $ Ap1 Cos a
     Ap1 Cos a -> simplify $ Ap1 Negate $ Ap1 Sin a
@@ -176,15 +166,12 @@ simplify o = case o of
   Ap1 f x -> Ap1 f $ simplify x
   Ap2 (Flip f) m n -> simplify $ Ap2 f n m
   Ap2 Sum (ExpRatio a) (ExpRatio b) -> ExpRatio $ a + b
-  Ap2 Sum (ExpComplex a) (ExpComplex b) -> ExpComplex $ a + b
   Ap2 Sum Infinity NegativeInfinity -> ExpRatio $ 0 % 1
   Ap2 Sum a b
     | a == b -> Ap2 Product a $ ExpRatio $ 2 % 1
     | otherwise -> Ap2 Sum (simplify a) (simplify b)
   Ap2 Product (ExpRatio a) (ExpRatio b) -> ExpRatio $ a * b
-  Ap2 Product (ExpComplex a) (ExpComplex b) -> ExpComplex $ a * b
   Ap2 Exponent (ExpRatio a) (ExpRatio b)
     | denominator a * denominator b == 1 -> ExpRatio $ (numerator a ^ numerator b) % 1
     | otherwise -> o
-  Ap2 Exponent (ExpComplex a) (ExpComplex b) -> ExpComplex $ a ** b
   Ap2 f m n -> Ap2 f (simplify m) (simplify n)
