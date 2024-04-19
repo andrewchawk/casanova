@@ -44,6 +44,10 @@ data Expression =
 -- @Exceptional@ is used because some of these functions, such as 'Tan', are
 -- undefined at some points.
 data FunctionM1 =
+  -- | Any such value is a lambda expression such that the name of the bound
+  -- variable of this lambda expression and the body of this lambda expression
+  -- are the 'String' value and the 'Expression' value, respectively.
+  Lambda String Expression |
   -- | This value represents the negation function.
   Negate |
   -- | This value represents the ceiling function.
