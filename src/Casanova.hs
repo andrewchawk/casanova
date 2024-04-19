@@ -180,12 +180,19 @@ simplify o = case o of
   Ap2 Product a b
     | a == b -> Ap2 Exponent a $ ExpRatio $ 2 % 1
     | Just True `elem` map isZero [a,b] -> ExpRatio $ 0 % 1
+    | isOne a == Just True -> b
+    | isOne b == Just True -> a
     | otherwise -> Ap2 Product (simplify a) (simplify b)
   Ap2 Exponent (ExpRatio a) (ExpRatio b)
     | denominator a * denominator b == 1 -> ExpRatio $ (numerator a ^ numerator b) % 1
     | denominator b == 1 -> ExpRatio $ iterate2 (* a) a (numerator b - 1)
     | otherwise -> o
-  Ap2 Exponent a b -> Ap2 Exponent (simplify a) (simplify b)
+  Ap2 Exponent a b
+    | all (== Just True) (map isZero [a,b]) -> Ap2 Exponent (simplify a) (simplify b)
+    | isZero a == Just True -> ExpRatio $ 0 % 1
+    | isZero b == Just True -> ExpRatio $ 1 % 1
+    | isOne a == Just True -> ExpRatio $ 1 % 1
+    | otherwise -> Ap2 Exponent (simplify a) (simplify b)
   Ap2 f m n -> Ap2 f (simplify m) (simplify n)
 
 -- | Whereas @simplify@ performs a single step of simplification,
@@ -215,3 +222,13 @@ isZero Infinity = Just False
 isZero NegativeInfinity = Just False
 isZero (ExpRatio x) = Just $ numerator x == 0
 isZero x = if simplify x == x then Nothing else isZero (simplify x)
+
+-- | If the input is certainly one, then the output is 'Just' 'True'.
+-- If the input is certainly /not/ one, then the output is 'Just' 'False'.
+-- If no answer is certain, then the output is 'Nothing'.
+isOne :: Expression -> Maybe Bool
+isOne (Variable _) = Nothing
+isOne Infinity = Just False
+isOne NegativeInfinity = Just False
+isOne (ExpRatio x) = Just $ x == 1 % 1
+isOne x = if simplify x == x then Nothing else isZero (simplify x)
