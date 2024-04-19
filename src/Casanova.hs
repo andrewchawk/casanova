@@ -130,3 +130,22 @@ subst :: [(String, Expression)]
       -- ^ The output is the result of substitution on this expression.
       -> Expression
 subst pairs e = foldr (uncurry subst1) e pairs
+
+-- | @simplify x@ is equivalent to @x@ but can be more easily computed.  The
+-- simplification is mostly meant for calculation, as opposed to reading.  For
+-- some values, @simplify@ may actually output a value which is /less/ readable.
+simplify :: Expression -> Expression
+simplify o = case o of
+  Variable _ -> o
+  ExpRatio _ -> o
+  ExpComplex _ -> o
+  Infinity -> o
+  NegativeInfinity -> o
+  Ap1 (Limit n x) m -> case m of
+    Variable n2 -> if n2 == n then x else o
+    Ap2 f a b -> simplify $ Ap2 f (Ap1 (Limit n x) a) (Ap1 (Limit n x) b)
+    _ -> Ap1 (Limit n $ simplify x) $ simplify m
+  Ap1 (Lambda n x) m -> simplify $ subst1 n m x
+  Ap1 f x -> Ap1 f $ simplify x
+  Ap2 (Flip f) m n -> simplify $ Ap2 f n m
+  Ap2 f m n -> Ap2 f (simplify m) (simplify n)
