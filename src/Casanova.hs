@@ -52,7 +52,14 @@ data FunctionM1 =
   Lambda String Expression |
   -- | 'Limit' is the higher-order limit function.  @Ap1 (Limit x a) m@ is the
   -- limit of @m@ as the variable whose name is @x@ approaches @m@.
-  Limit String Expression
+  Limit String Expression |
+  -- | 'Diff' is the higher-order differential function.  @Ap1 (Diff x) n@ is
+  -- the differential, with regard to the variable whose name is @x@, of @n@.
+  Diff String |
+  -- | 'Integral' is the higher-order integration function.
+  -- @Ap1 (Integral x) n@ is the integral, with regard to the variable whose
+  -- name is @x@, of @n@.
+  Integral String |
   -- | This value represents the negation function.
   Negate |
   -- | This value represents the ceiling function.
