@@ -76,7 +76,13 @@ data FunctionM1 =
   -- | This value represents the cosine function.
   Cos |
   -- | This value represents the tangent function.
-  Tan
+  Tan |
+  -- | This value represents the cosecant function.
+  Csc |
+  -- | This value represents the secant function.
+  Sec |
+  -- | This value represents the cotangent function.
+  Cot
   deriving (Show)
 
 -- | Values of type 'FunctionM2' are convenient, pattern-matching-friendly
