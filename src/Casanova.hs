@@ -183,6 +183,8 @@ simplify o = case o of
     | otherwise -> Ap2 Sum (simplify a) (simplify b)
   Ap2 Product (ExpRatio a) (ExpRatio b) -> ExpRatio $ a * b
   Ap2 Product (ExpComplex a) (ExpComplex b) -> ExpComplex $ a * b
-  Ap2 Exponent (ExpRatio a) (ExpRatio b) -> ExpRatio $ a * b
-  Ap2 Exponent (ExpComplex a) (ExpComplex b) -> ExpComplex $ a * b
+  Ap2 Exponent (ExpRatio a) (ExpRatio b)
+    | denominator a * denominator b == 1 -> ExpRatio $ (numerator a ^ numerator b) % 1
+    | otherwise -> o
+  Ap2 Exponent (ExpComplex a) (ExpComplex b) -> ExpComplex $ a ** b
   Ap2 f m n -> Ap2 f (simplify m) (simplify n)
