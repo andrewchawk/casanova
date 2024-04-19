@@ -180,10 +180,12 @@ simplify o = case o of
   Ap2 Product a b
     | a == b -> Ap2 Exponent a $ ExpRatio $ 2 % 1
     | Just True `elem` map isZero [a,b] -> ExpRatio $ 0 % 1
+    | otherwise -> Ap2 Product (simplify a) (simplify b)
   Ap2 Exponent (ExpRatio a) (ExpRatio b)
     | denominator a * denominator b == 1 -> ExpRatio $ (numerator a ^ numerator b) % 1
     | denominator b == 1 -> ExpRatio $ iterate2 (* a) a (numerator b - 1)
     | otherwise -> o
+  Ap2 Exponent a b -> Ap2 Exponent (simplify a) (simplify b)
   Ap2 f m n -> Ap2 f (simplify m) (simplify n)
 
 -- | Whereas @simplify@ performs a single step of simplification,
