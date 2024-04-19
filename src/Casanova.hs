@@ -11,7 +11,8 @@ type Exceptional a = Either String a
 --
 -- = The Lack of Support for Floating-Point Numbers
 --
--- Casanova lacks obvious support for floating-point numbers because
+-- With the exception of complex numbers -- 'Complex' depends upon 'RealFloat'
+-- -- asanova lacks obvious support for floating-point numbers because
 -- floating-point arithmetic is imprecise, accumulates errors, and can mislead. 
 -- Instead, Casanova uses arbitrary-precision ratios and a dedicated value for
 -- infinity.  The properties of floating-point arithmetic enable the direct
@@ -25,8 +26,8 @@ data Expression =
   ExpInt Integer |
   -- This bit is used to represent fractions.
   ExpRatio (Ratio Integer) |
-  -- | This bit is used to represent complex integers.  Go figure.
-  ExpComplex (Complex Integer) |
+  -- | This bit is used to represent complex numbers.  Go figure.
+  ExpComplex (Complex Double) |
   -- | 'Infinity' is just infinity.  This value behaves like the infinity of the
   -- floating-point numbers.
   Infinity |
