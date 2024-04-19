@@ -11,8 +11,8 @@ type Exceptional a = Either String a
 --
 -- = The Lack of Support for Floating-Point Numbers
 --
--- With the exception of complex numbers -- 'Complex' depends upon 'RealFloat'
--- -- asanova lacks obvious support for floating-point numbers because
+-- With the exception of complex numbers, as 'Complex' depends upon 'RealFloat',
+-- Casanova lacks obvious support for floating-point numbers because
 -- floating-point arithmetic is imprecise, accumulates errors, and can mislead. 
 -- Instead, Casanova uses arbitrary-precision ratios and a dedicated value for
 -- infinity.  The properties of floating-point arithmetic enable the direct
@@ -34,7 +34,7 @@ data Expression =
   -- numbers.
   NegativeInfinity |
   -- | Any such value represents the application of a function to the specified
-  -- expresison.
+  -- expression.
   Ap1 FunctionM1 Expression
   deriving (Show)
 
