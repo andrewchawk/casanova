@@ -44,7 +44,7 @@ data Expression =
   -- | Any such value represents the application of a function to the specified
   -- expressions.
   Ap2 FunctionM2 Expression Expression
-  deriving (Show)
+  deriving (Show, Eq)
 
 -- | Values of type 'FunctionM1' are convenient, pattern-matching-friendly
 -- representations of functions of type @Expression -> Exceptional Expression@.
@@ -83,7 +83,7 @@ data FunctionM1 =
   Sec |
   -- | This value represents the cotangent function.
   Cot
-  deriving (Show)
+  deriving (Show, Eq)
 
 -- | Values of type 'FunctionM2' are convenient, pattern-matching-friendly
 -- representations of functions of type
@@ -106,7 +106,7 @@ data FunctionM2 =
   -- | This value is the function which outputs the maximum of the input
   -- arguments.
   Maximum
-  deriving (Show)
+  deriving (Show, Eq)
 
 -- | @subst1 n x f@ is the result of replacing with @x@ all of @f@'s bound
 -- instances of @Variable n@, skipping certain lambda expressions appropriately.
