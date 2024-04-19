@@ -207,7 +207,7 @@ iterate2 :: (a -> a)
 iterate2 f x n = if n <= 0 then x else f $ iterate2 f x $ n - 1
 
 -- | If the input expression is certainly zero, then the output is 'Just'
--- 'True'.  if the input expression is definitely /not/ zero, then the output
+-- 'True'.  If the input expression is definitely /not/ zero, then the output
 -- is 'Just' 'False'.  If no answer is certain, then the output is 'Nothing'.
 isZero :: Expression -> Maybe Bool
 isZero (Variable _) = Nothing
