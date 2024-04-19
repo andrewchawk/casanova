@@ -134,9 +134,13 @@ subst :: [(String, Expression)]
       -> Expression
 subst pairs e = foldr (uncurry subst1) e pairs
 
--- | @simplify x@ is equivalent to @x@ but can be more easily computed.  The
--- simplification is mostly meant for calculation, as opposed to reading.  For
--- some values, @simplify@ may actually output a value which is /less/ readable.
+-- | @simplify@ is the single-step simplification function.  @simplify x@ is
+-- equivalent to @x@ but can be slightly more easily computed.
+-- The simplification is mostly meant for calculation, as opposed to reading.
+-- For some values, @simplify@ may actually output a value which is /less/
+-- readable.
+--
+-- If you need documentation, then you probably want to use 'recursiveSimplify'.
 simplify :: Expression -> Expression
 simplify o = case o of
   Variable _ -> o
@@ -145,26 +149,26 @@ simplify o = case o of
   NegativeInfinity -> o
   Ap1 (Limit n x) m -> case m of
     Variable n2 -> if n2 == n then x else o
-    Ap2 f a b -> simplify $ Ap2 f (Ap1 (Limit n x) a) (Ap1 (Limit n x) b)
+    Ap2 f a b -> Ap2 f (Ap1 (Limit n x) a) (Ap1 (Limit n x) b)
     _ -> Ap1 (Limit n $ simplify x) $ simplify m
-  Ap1 (Lambda n x) m -> simplify $ subst1 n m x
+  Ap1 (Lambda n x) m -> subst1 n m x
   Ap1 (Diff x) m -> case m of
     Infinity -> ExpRatio $ 0 % 1
     NegativeInfinity -> ExpRatio $ 0 % 1
     ExpRatio _ -> ExpRatio $ 0 % 1
     Variable y -> if y == x then ExpRatio (1 % 1) else o
-    Ap1 Sin a -> simplify $ Ap1 Cos a
-    Ap1 Cos a -> simplify $ Ap1 Negate $ Ap1 Sin a
-    Ap1 Tan a -> simplify $ Ap1 Sec $ Ap1 Sec a
-    Ap1 Csc a -> simplify $ Ap2 Product (Ap1 Negate $ Ap1 Cot a) (Ap1 Csc a)
-    Ap1 Sec a -> simplify $ Ap2 Product (Ap1 Sec a) (Ap1 Tan a)
-    Ap1 Cot a -> simplify $ Ap1 Negate $ square $ Ap1 Csc a
+    Ap1 Sin a -> Ap1 Cos a
+    Ap1 Cos a -> Ap1 Negate $ Ap1 Sin a
+    Ap1 Tan a -> Ap1 Sec $ Ap1 Sec a
+    Ap1 Csc a -> Ap2 Product (Ap1 Negate $ Ap1 Cot a) (Ap1 Csc a)
+    Ap1 Sec a -> Ap2 Product (Ap1 Sec a) (Ap1 Tan a)
+    Ap1 Cot a -> Ap1 Negate $ square $ Ap1 Csc a
       where square x = Ap2 Exponent x $ ExpRatio $ 2 % 1
-    Ap2 Product a b -> simplify $ Ap2 Sum (diff1 x a b) (diff1 x b a)
+    Ap2 Product a b -> Ap2 Sum (diff1 x a b) (diff1 x b a)
       where diff1 x2 a2 b2 = Ap2 Product (Ap1 (Diff x2) a2) b2
     _ -> Ap1 (Diff x) $ simplify m
   Ap1 f x -> Ap1 f $ simplify x
-  Ap2 (Flip f) m n -> simplify $ Ap2 f n m
+  Ap2 (Flip f) m n -> Ap2 f n m
   Ap2 Sum (ExpRatio a) (ExpRatio b) -> ExpRatio $ a + b
   Ap2 Sum Infinity NegativeInfinity -> ExpRatio $ 0 % 1
   Ap2 Sum a b
@@ -181,6 +185,14 @@ simplify o = case o of
     | denominator b == 1 -> ExpRatio $ iterate2 (* a) a (numerator b - 1)
     | otherwise -> o
   Ap2 f m n -> Ap2 f (simplify m) (simplify n)
+
+-- | Whereas @simplify@ performs a single step of simplification,
+-- @recursiveSimplify@ recursively applies simplification until no further
+-- simplification can be achieved.
+recursiveSimplify :: Expression
+                  -- ^ The simpler equivalent of this expression is output.
+                  -> Expression
+recursiveSimplify x = if simplify x == x then x else recursiveSimplify $ simplify x
 
 -- | @iterate f x n@ is the result of applying to @x@ @f@ @min 0 n@ times.
 iterate2 :: (a -> a)
