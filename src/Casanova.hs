@@ -47,6 +47,9 @@ data FunctionM1 =
   -- variable of this lambda expression and the body of this lambda expression
   -- are the 'String' value and the 'Expression' value, respectively.
   Lambda String Expression |
+  -- | 'Limit' is the higher-order limit function.  @Ap1 (Limit x a) m@ is the
+  -- limit of @m@ as the variable whose name is @x@ approaches @m@.
+  Limit String Expression
   -- | This value represents the negation function.
   Negate |
   -- | This value represents the ceiling function.
