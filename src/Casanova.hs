@@ -178,8 +178,9 @@ simplify o = case o of
   Ap2 Sum (ExpRatio a) (ExpRatio b) -> ExpRatio $ a + b
   Ap2 Sum (ExpComplex a) (ExpComplex b) -> ExpComplex $ a + b
   Ap2 Sum Infinity NegativeInfinity -> ExpRatio $ 0 % 1
-  Ap2 Sum a b -> if a == b then (Ap2 Product a $ ExpRatio $ 2 % 1) else s
-    where s = Ap2 Sum (simplify a) (simplify b)
+  Ap2 Sum a b
+    | a == b -> Ap2 Product a $ ExpRatio $ 2 % 1
+    | otherwise -> Ap2 Sum (simplify a) (simplify b)
   Ap2 Product (ExpRatio a) (ExpRatio b) -> ExpRatio $ a * b
   Ap2 Product (ExpComplex a) (ExpComplex b) -> ExpComplex $ a * b
   Ap2 Exponent (ExpRatio a) (ExpRatio b) -> ExpRatio $ a * b
