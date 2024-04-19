@@ -169,9 +169,35 @@ simplify o = case o of
   Ap2 Sum Infinity NegativeInfinity -> ExpRatio $ 0 % 1
   Ap2 Sum a b
     | a == b -> Ap2 Product a $ ExpRatio $ 2 % 1
+    | isZero a == Just True -> b
+    | isZero b == Just True -> a
     | otherwise -> Ap2 Sum (simplify a) (simplify b)
   Ap2 Product (ExpRatio a) (ExpRatio b) -> ExpRatio $ a * b
+  Ap2 Product a b
+    | a == b -> Ap2 Exponent a $ ExpRatio $ 2 % 1
+    | Just True `elem` map isZero [a,b] -> ExpRatio $ 0 % 1
   Ap2 Exponent (ExpRatio a) (ExpRatio b)
     | denominator a * denominator b == 1 -> ExpRatio $ (numerator a ^ numerator b) % 1
+    | denominator b == 1 -> ExpRatio $ iterate2 (* a) a (numerator b - 1)
     | otherwise -> o
   Ap2 f m n -> Ap2 f (simplify m) (simplify n)
+
+-- | @iterate f x n@ is the result of applying to @x@ @f@ @min 0 n@ times.
+iterate2 :: (a -> a)
+         -- ^ Iteration is done with this function.
+         -> a
+         -- ^ The function is first applied to this value.
+         -> Integer
+         -- ^ This value is the number of iterations.
+         -> a
+iterate2 f x n = if n <= 0 then x else f $ iterate2 f x $ n - 1
+
+-- | If the input expression is certainly zero, then the output is 'Just'
+-- 'True'.  if the input expression is definitely /not/ zero, then the output
+-- is 'Just' 'False'.  If no answer is certain, then the output is 'Nothing'.
+isZero :: Expression -> Maybe Bool
+isZero (Variable _) = Nothing
+isZero Infinity = Just False
+isZero NegativeInfinity = Just False
+isZero (ExpRatio x) = Just $ numerator x == 0
+isZero x = if simplify x == x then Nothing else isZero (simplify x)
