@@ -35,7 +35,10 @@ data Expression =
   NegativeInfinity |
   -- | Any such value represents the application of a function to the specified
   -- expression.
-  Ap1 FunctionM1 Expression
+  Ap1 FunctionM1 Expression |
+  -- | Any such value represents the application of a function to the specified
+  -- expressions.
+  Ap2 FunctionM2 Expression Expression
   deriving (Show)
 
 -- | Values of type 'FunctionM1' are convenient, pattern-matching-friendly
@@ -64,6 +67,29 @@ data FunctionM1 =
   Tan
   deriving (Show)
 
+-- | Values of type 'FunctionM2' are convenient, pattern-matching-friendly
+-- representations of functions of type
+-- @Expression -> Expression -> Exceptional Expression@.
+-- @Exceptional@ is used because some of these functions, such as 'Minimum',
+-- are undefined at some points.
+data FunctionM2 =
+  -- | This constructor is used to flip the order of the arguments.
+  -- @Ap2 (Flip Sum) m n@ is equivalent to @Ap2 Sum n m@.
+  Flip FunctionM2 |
+  -- | This value represents the sum function.
+  Sum |
+  -- | This value represents the product function.
+  Product |
+  -- | This value represents the exponentation function.
+  Exponent |
+  -- | This value is the function which outputs the minimum of the input
+  -- arguments.
+  Minimum |
+  -- | This value is the function which outputs the maximum of the input
+  -- arguments.
+  Maximum
+  deriving (Show)
+
 -- | @subst1 n x f@ is the result of replacing with @x@ all of @f@'s bound
 -- instances of @Variable n@, skipping certain lambda expressions appropriately.
 subst1 :: String
@@ -84,6 +110,7 @@ subst1 x z f = case f of
     where
     newLambda = if x' == x then original else Lambda x' $ subst1 x z f'
   Ap1 g m -> Ap1 g $ subst1 x z m
+  Ap2 g m n -> Ap2 g (subst1 x z m) (subst1 x z n)
   m -> m
 
 -- | @subst@ is basically a version of 'subst1' which supports the substitution
