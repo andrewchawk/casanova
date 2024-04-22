@@ -90,6 +90,9 @@ data FunctionM2 =
   Sum |
   -- | This value represents the product function.
   Product |
+  -- | This value represents the division function.  @Ap2 Quotient a b@ is the
+  -- quotient of @a@ and @b@.
+  Quotient |
   -- | This value represents the exponentation function.
   Exponent |
   -- | This value is the function which outputs the minimum of the input
@@ -195,6 +198,8 @@ simplify o = case o of
     | isOne a == Just True -> b
     | isOne b == Just True -> a
     | otherwise -> Ap2 Product (simplify a) (simplify b)
+  Ap2 Quotient (ExpRatio a) (ExpRatio b) -> ExpRatio $ a / b
+  Ap2 Quotient a b -> Ap2 Quotient (simplify a) (simplify b)
   Ap2 Exponent (ExpRatio a) (ExpRatio b)
     | denominator a * denominator b == 1 -> ExpRatio $ (numerator a ^ numerator b) % 1
     | denominator b == 1 -> ExpRatio $ iterate2 (* a) a (numerator b - 1)
@@ -244,3 +249,30 @@ isOne Infinity = Just False
 isOne NegativeInfinity = Just False
 isOne (ExpRatio x) = Just $ x == 1 % 1
 isOne x = if simplify x == x then Nothing else isZero (simplify x)
+
+-- | If the input expression is in some way malformed -- for example, contains
+-- the quotient of some number and zero -- then the output is a description of
+-- the badness.  Otherwise, the 'Right' 'Expresion' which is output is
+-- equivalent to the input but may be simpler.
+--
+-- @exceptionallyEvaluate@ performs a single step of the simplification process.
+exceptionallyEvaluate :: Expression -> Exceptional Expression
+exceptionallyEvaluate o = case o of
+  Variable _ -> Right o
+  Infinity -> Right o
+  NegativeInfinity -> Right o
+  ExpRatio _ -> Right o
+  Ap2 Quotient a b
+    | isZero b == Just True -> Left "Division by zero is undefined."
+    | otherwise -> case (a, b) of
+        (ExpRatio a, ExpRatio b) -> Right $ ExpRatio $ a / b
+        _ -> Right o
+
+-- | @recursiveExceptionallyEvaluate@ is like 'exceptionallyEvaluate' but
+-- performs multiple evaluation steps.  The output is contains a simplification
+-- or a description of the first error which is encountered.
+recursiveExceptionallyEvaluate :: Expression -> Exceptional Expression
+recursiveExceptionallyEvaluate x = either Left recurse e
+  where
+  e = exceptionallyEvaluate x
+  recurse x2 = if x2 == x then Right x else recursiveExceptionallyEvaluate x2
