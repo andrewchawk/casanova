@@ -58,6 +58,10 @@ data FunctionM1 =
   -- @Ap1 (Integral x) n@ is the integral, with regard to the variable whose
   -- name is @x@, of @n@.
   Integral String |
+  -- | This value corresponds to 'abs'.
+  Abs |
+  -- | This value corresponds to 'signum'.
+  Signum |
   -- | This value represents the negation function.
   Negate |
   -- | This value represents the ceiling function.
@@ -366,3 +370,13 @@ isCommutative :: FunctionM2 -> Bool
 isCommutative Sum = True
 isCommutative Product = True
 isCommutative _ = False
+
+-- | The standard Haskell numeric operators can be used instead of Casanova's
+-- ever-verbose internal representations.
+instance Num Expression where
+  (+) a b = Ap2 Sum a b
+  (-) a b = Ap2 Sum a $ Ap1 Negate b
+  (*) a b = Ap2 Product a b
+  fromInteger x = ExpRatio $ x % 1
+  abs = Ap1 Abs
+  signum = Ap1 Signum
