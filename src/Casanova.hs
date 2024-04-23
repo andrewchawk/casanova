@@ -1,4 +1,5 @@
 import Data.Ratio
+import Data.Either
 import Data.Complex
 
 -- | This datatype facilitates error handling.  @Left@ values indicate -- and
@@ -250,23 +251,105 @@ isOne NegativeInfinity = Just False
 isOne (ExpRatio x) = Just $ x == 1 % 1
 isOne x = if simplify x == x then Nothing else isZero (simplify x)
 
+-- | If the input contains even a single 'Right' value, then the output is the
+-- first such 'Right' value.  Otherwise, the output is basically just a
+-- concatenation of the error descriptions.
+exceptionalSequence :: [Exceptional Expression] -> Exceptional Expression
+exceptionalSequence [] = Left "The input for exceptionalSequence is empty!"
+exceptionalSequence x = case rights x of
+  [] -> Left $ "The following errors were reported:\n" ++ unlines (lefts x)
+  (x : _) -> Right x
+
 -- | If the input expression is in some way malformed -- for example, contains
 -- the quotient of some number and zero -- then the output is a description of
 -- the badness.  Otherwise, the 'Right' 'Expresion' which is output is
 -- equivalent to the input but may be simpler.
 --
 -- @exceptionallyEvaluate@ performs a single step of the simplification process.
+--
+-- Also, @exceptionallyEvaluate@ /will/ convert to a standard form some
+-- expressions.  This conversion facilitates processes like replacing with the
+-- equivalent of "2 * a" the equivalent of "a + a".  This /replacement/
+-- facilitates some computer algebra operations which are more obviously
+-- desirable, e.g., the simplification of symbolic expressions.
 exceptionallyEvaluate :: Expression -> Exceptional Expression
 exceptionallyEvaluate o = case o of
   Variable _ -> Right o
   Infinity -> Right o
   NegativeInfinity -> Right o
   ExpRatio _ -> Right o
+  Ap1 (Lambda x n) m -> Right $ subst1 x m n
+  Ap1 (Limit x n) m -> case m of
+    Variable x2 -> Right $ if x == x2 then n else o
+    Ap2 Quotient m1 m2 -> exceptionalSequence $ map recursiveExceptionallyEvaluate
+      [Ap2 Quotient (Ap1 (Limit x n) m1) (Ap1 (Limit x n) m2),
+       subst1 x n m]
+    _
+      | subst1 x n m == m -> Right m
+      | otherwise -> Right o
+    ExpRatio b -> Right m
+  Ap1 (Diff x) m -> case m of
+    Variable x2 -> Right $ if x2 == x then ExpRatio (1 % 1) else o
+    Infinity -> Right $ ExpRatio $ 0 % 1
+    NegativeInfinity -> Right $ ExpRatio $ 0 % 1
+    ExpRatio _ -> Right $ ExpRatio $ 0 % 1
+    Ap2 Product m1 m2 ->
+      Right $ Ap2 Sum
+        (Ap2 Product (Ap1 (Diff x) m1) m2)
+        (Ap2 Product (Ap1 (Diff x) m2) m1)
+    Ap1 Negate f -> Right $ Ap1 Negate $ Ap1 (Diff x) f
+    Ap1 f (Ap1 g e) -> Ap2 Product gDiff <$> diffCompose
+      where
+      diff f x = Lambda x $ Ap1 (Diff x) $ Ap1 f $ Variable x
+      gDiff = Ap1 (Diff x) $ Ap1 g e
+      diffCompose = flip Ap1 (Ap1 g e) <$> diffF
+      -- At least in the case of sin (sin x), the following use of
+      -- exceptionallyEvaluate prevents infinite recursion.  Debugging this part
+      -- burned up a decent chunk of my time, and unless the handling of lambdas
+      -- is fundamentally changed, we should probably keep using
+      -- exceptionallyEvaluate.
+      diffF = Lambda x <$> exceptionallyEvaluate (Ap1 (Diff x) $ Ap1 f e)
+    Ap1 Sin m2
+      | m2 == Variable x -> Right $ Ap1 Cos m2
+    Ap1 Cos m2
+      | m2 == Variable x -> Right $ Ap1 Negate $ Ap1 Sin m2
+    Ap1 Tan m2
+      | m2 == Variable x -> Right $ Ap2 Exponent (Ap1 Sec m2) (ExpRatio $ 2 % 1)
+    Ap1 Csc m2
+      | m2 == Variable x -> Right $ Ap2 Product (Ap1 Negate $ Ap1 Cot m2) (Ap1 Csc m2)
+    Ap1 Sec m2
+      | m2 == Variable x -> Right $ Ap2 Product (Ap1 Sec m2) (Ap1 Tan m2)
+    Ap1 Cot m2
+      | m2 == Variable x -> Right $ Ap1 Negate $ square $ Ap1 Csc m2
+      where square x = Ap2 Exponent x $ ExpRatio $ 2 % 1
+  Ap1 f x -> Ap1 f <$> exceptionallyEvaluate x
+  Ap2 Product (Ap1 Negate a) b -> Right $ Ap1 Negate $ Ap2 Product a b
+  Ap2 Product (ExpRatio a) (ExpRatio b) -> Right $ ExpRatio $ a * b
+  Ap2 Product a b
+    | Infinity `elem` [a,b] -> Right o
   Ap2 Quotient a b
     | isZero b == Just True -> Left "Division by zero is undefined."
+    | isOne b == Just True -> Right a
+    | recursiveSimplify a == recursiveSimplify b -> Right $ ExpRatio $ 1 / 1
     | otherwise -> case (a, b) of
         (ExpRatio a, ExpRatio b) -> Right $ ExpRatio $ a / b
         _ -> Right o
+  Ap2 Sum a b
+      -- The evaluation is just useful for combining addition expressions into
+      -- multiplication expressions.
+    | a2 == b2 && isRight a2 -> Right $ Ap2 Product (ExpRatio $ 2 % 1) a
+    where [a2,b2] = map recursiveExceptionallyEvaluate [a,b]
+  -- These "Ap2 f" matches which refer to variables are really just useful
+  -- for converting expressions into the normal form.  No real computation
+  -- is happening here, so this part can be resonably skipped.  Basically,
+  -- constants precede variables, but variables precede function application
+  -- expressions.
+  Ap2 f fa@(Ap1 _ _) v@(Variable _) -> Right $ if isCommutative f then Ap2 f v fa else o
+  Ap2 f fa@(Ap2 _ _ _) v@(Variable _) -> Right $ if isCommutative f then Ap2 f v fa else o
+  Ap2 f v@(Variable _) n@(ExpRatio _) -> Right $ if isCommutative f then Ap2 f n v else o
+  Ap2 f v@(Variable _) n@Infinity -> Right $ if isCommutative f then Ap2 f n v else o
+  Ap2 f v@(Variable _) n@NegativeInfinity -> Right $ if isCommutative f then Ap2 f n v else o
+  Ap2 f a b -> Ap2 f <$> exceptionallyEvaluate a <*> exceptionallyEvaluate b
 
 -- | @recursiveExceptionallyEvaluate@ is like 'exceptionallyEvaluate' but
 -- performs multiple evaluation steps.  The output is contains a simplification
@@ -276,3 +359,10 @@ recursiveExceptionallyEvaluate x = either Left recurse e
   where
   e = exceptionallyEvaluate x
   recurse x2 = if x2 == x then Right x else recursiveExceptionallyEvaluate x2
+
+-- | @isCommutative x@ is 'True' if and only if @x@ represents a commutative
+-- function.
+isCommutative :: FunctionM2 -> Bool
+isCommutative Sum = True
+isCommutative Product = True
+isCommutative _ = False
