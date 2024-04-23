@@ -143,7 +143,7 @@ subst :: [(String, Expression)]
       -> Expression
 subst pairs e = foldr (uncurry subst1) e pairs
 
--- | @iterate f x n@ is the result of applying to @x@ @f@ @min 0 n@ times.
+-- | @iterate f x n@ is the result of applying to @x@ @f@ @max 0 n@ times.
 iterate2 :: (a -> a)
          -- ^ Iteration is done with this function.
          -> a
@@ -282,7 +282,7 @@ exceptionallyEvaluate o = case o of
   Ap2 f a b -> Ap2 f <$> exceptionallyEvaluate a <*> exceptionallyEvaluate b
 
 -- | @recursiveExceptionallyEvaluate@ is like 'exceptionallyEvaluate' but
--- performs multiple evaluation steps.  The output is contains a simplification
+-- performs multiple evaluation steps.  The output contains a simplification
 -- or a description of the first error which is encountered.
 recursiveExceptionallyEvaluate :: Expression -> Exceptional Expression
 recursiveExceptionallyEvaluate x = either Left recurse e
