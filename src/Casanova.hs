@@ -14,9 +14,10 @@ type Exceptional a = Either String a
 --
 -- Casanova lacks obvious support for floating-point numbers because
 -- floating-point arithmetic is imprecise, accumulates errors, and can mislead. 
--- Instead, Casanova uses arbitrary-precision ratios and a dedicated value for
--- infinity.  The properties of floating-point arithmetic enable the direct
--- translation of floating-point values, so nothing is really lost.
+-- Instead, Casanova uses arbitrary-precision ratios and dedicated values for
+-- positive and negative infinities.  The properties of floating-point
+-- arithmetic enable the direct translation of floating-point values, so nothing
+-- is really lost.
 data Expression =
   -- | This bit is used to represent variables.  The 'String' value is the
   -- name of the variable.  Using empty variable names is allowed but is
