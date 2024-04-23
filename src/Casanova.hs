@@ -143,89 +143,6 @@ subst :: [(String, Expression)]
       -> Expression
 subst pairs e = foldr (uncurry subst1) e pairs
 
--- | @simplify@ is the single-step simplification function.  @simplify x@ is
--- equivalent to @x@ but can be slightly more easily computed.
--- The simplification is mostly meant for calculation, as opposed to reading.
--- For some values, @simplify@ may actually output a value which is /less/
--- readable.
---
--- If you need documentation, then you probably want to use 'recursiveSimplify'.
-simplify :: Expression -> Expression
-simplify o = case o of
-  Variable _ -> o
-  ExpRatio _ -> o
-  Infinity -> o
-  NegativeInfinity -> o
-  Ap1 (Limit n x) m -> case m of
-    Variable n2 -> if n2 == n then x else o
-    Ap2 f a b -> Ap2 f (Ap1 (Limit n x) a) (Ap1 (Limit n x) b)
-    _ -> Ap1 (Limit n $ simplify x) $ simplify m
-  Ap1 (Lambda n x) m -> subst1 n m x
-  Ap1 (Diff x) m -> case m of
-    Infinity -> ExpRatio $ 0 % 1
-    NegativeInfinity -> ExpRatio $ 0 % 1
-    ExpRatio _ -> ExpRatio $ 0 % 1
-    Variable y -> if y == x then ExpRatio (1 % 1) else o
-    Ap1 Sin a
-      | recursiveSimplify a == Variable x -> Ap1 Cos a
-      | otherwise -> o
-    Ap1 Cos a
-      | recursiveSimplify a == Variable x -> Ap1 Negate $ Ap1 Sin a
-      | otherwise -> o
-    Ap1 Tan a
-      | recursiveSimplify a == Variable x -> Ap2 Exponent (Ap1 Sec a) (ExpRatio $ 2 % 1)
-      | otherwise -> o
-    Ap1 Csc a
-      | recursiveSimplify a == Variable x -> Ap2 Product (Ap1 Negate $ Ap1 Cot a) (Ap1 Csc a)
-      | otherwise -> o
-    Ap1 Sec a
-      | recursiveSimplify a == Variable x -> Ap2 Product (Ap1 Sec a) (Ap1 Tan a)
-      | otherwise -> o
-    Ap1 Cot a
-      | recursiveSimplify a == Variable x -> Ap1 Negate $ square $ Ap1 Csc a
-      | otherwise -> o
-      where square x = Ap2 Exponent x $ ExpRatio $ 2 % 1
-    Ap2 Product a b -> Ap2 Sum (diff1 x a b) (diff1 x b a)
-      where diff1 x2 a2 b2 = Ap2 Product (Ap1 (Diff x2) a2) b2
-    _ -> Ap1 (Diff x) $ simplify m
-  Ap1 f x -> Ap1 f $ simplify x
-  Ap2 (Flip f) m n -> Ap2 f n m
-  Ap2 Sum (ExpRatio a) (ExpRatio b) -> ExpRatio $ a + b
-  Ap2 Sum Infinity NegativeInfinity -> ExpRatio $ 0 % 1
-  Ap2 Sum a b
-    | a == b -> Ap2 Product a $ ExpRatio $ 2 % 1
-    | isZero a == Just True -> b
-    | isZero b == Just True -> a
-    | otherwise -> Ap2 Sum (simplify a) (simplify b)
-  Ap2 Product (ExpRatio a) (ExpRatio b) -> ExpRatio $ a * b
-  Ap2 Product a b
-    | a == b -> Ap2 Exponent a $ ExpRatio $ 2 % 1
-    | Just True `elem` map isZero [a,b] -> ExpRatio $ 0 % 1
-    | isOne a == Just True -> b
-    | isOne b == Just True -> a
-    | otherwise -> Ap2 Product (simplify a) (simplify b)
-  Ap2 Quotient (ExpRatio a) (ExpRatio b) -> ExpRatio $ a / b
-  Ap2 Quotient a b -> Ap2 Quotient (simplify a) (simplify b)
-  Ap2 Exponent (ExpRatio a) (ExpRatio b)
-    | denominator a * denominator b == 1 -> ExpRatio $ (numerator a ^ numerator b) % 1
-    | denominator b == 1 -> ExpRatio $ iterate2 (* a) a (numerator b - 1)
-    | otherwise -> o
-  Ap2 Exponent a b
-    | all (== Just True) (map isZero [a,b]) -> Ap2 Exponent (simplify a) (simplify b)
-    | isZero a == Just True -> ExpRatio $ 0 % 1
-    | isZero b == Just True -> ExpRatio $ 1 % 1
-    | isOne a == Just True -> ExpRatio $ 1 % 1
-    | otherwise -> Ap2 Exponent (simplify a) (simplify b)
-  Ap2 f m n -> Ap2 f (simplify m) (simplify n)
-
--- | Whereas @simplify@ performs a single step of simplification,
--- @recursiveSimplify@ recursively applies simplification until no further
--- simplification can be achieved.
-recursiveSimplify :: Expression
-                  -- ^ The simpler equivalent of this expression is output.
-                  -> Expression
-recursiveSimplify x = if simplify x == x then x else recursiveSimplify $ simplify x
-
 -- | @iterate f x n@ is the result of applying to @x@ @f@ @min 0 n@ times.
 iterate2 :: (a -> a)
          -- ^ Iteration is done with this function.
@@ -244,7 +161,10 @@ isZero (Variable _) = Nothing
 isZero Infinity = Just False
 isZero NegativeInfinity = Just False
 isZero (ExpRatio x) = Just $ numerator x == 0
-isZero x = if simplify x == x then Nothing else isZero (simplify x)
+isZero x = either (const Nothing) recurseIfDifferent $ e x
+  where
+  e = recursiveExceptionallyEvaluate
+  recurseIfDifferent x2 = if x2 == x then Nothing else isZero x2
 
 -- | If the input is certainly one, then the output is 'Just' 'True'.
 -- If the input is certainly /not/ one, then the output is 'Just' 'False'.
@@ -254,7 +174,10 @@ isOne (Variable _) = Nothing
 isOne Infinity = Just False
 isOne NegativeInfinity = Just False
 isOne (ExpRatio x) = Just $ x == 1 % 1
-isOne x = if simplify x == x then Nothing else isOne (simplify x)
+isOne x = either (const Nothing) recurseIfDifferent $ e x
+  where
+  e = recursiveExceptionallyEvaluate
+  recurseIfDifferent x2 = if x2 == x then Nothing else isOne x2
 
 -- | If the input contains even a single 'Right' value, then the output is the
 -- first such 'Right' value.  Otherwise, the output is basically just a
@@ -335,7 +258,7 @@ exceptionallyEvaluate o = case o of
   Ap2 Quotient a b
     | isZero b == Just True -> Left "Division by zero is undefined."
     | isOne b == Just True -> Right a
-    | recursiveSimplify a == recursiveSimplify b -> Right $ ExpRatio $ 1 / 1
+    | recursiveExceptionallyEvaluate a == recursiveExceptionallyEvaluate b -> Right $ ExpRatio $ 1 / 1
     | otherwise -> case (a, b) of
         (ExpRatio a, ExpRatio b) -> Right $ ExpRatio $ a / b
         _ -> Right o
