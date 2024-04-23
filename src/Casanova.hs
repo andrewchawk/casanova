@@ -261,6 +261,10 @@ exceptionallyEvaluate o = case o of
     | otherwise -> case (a, b) of
         (ExpRatio a, ExpRatio b) -> Right $ ExpRatio $ a / b
         _ -> Right o
+  Ap2 Sum a (Ap1 Negate b)
+    | e a == e b -> Right $ ExpRatio $ 0 % 1
+    where e = recursiveExceptionallyEvaluate
+  Ap2 Sum (ExpRatio a) (ExpRatio b) -> Right $ ExpRatio $ a + b
   Ap2 Sum a b
       -- The evaluation is just useful for combining addition expressions into
       -- multiplication expressions.
