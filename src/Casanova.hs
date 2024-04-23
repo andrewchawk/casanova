@@ -254,7 +254,7 @@ isOne (Variable _) = Nothing
 isOne Infinity = Just False
 isOne NegativeInfinity = Just False
 isOne (ExpRatio x) = Just $ x == 1 % 1
-isOne x = if simplify x == x then Nothing else isZero (simplify x)
+isOne x = if simplify x == x then Nothing else isOne (simplify x)
 
 -- | If the input contains even a single 'Right' value, then the output is the
 -- first such 'Right' value.  Otherwise, the output is basically just a
