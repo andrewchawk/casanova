@@ -249,6 +249,9 @@ exceptionallyEvaluate o = case o of
     Ap1 Cot m2
       | m2 == Variable x -> Right $ Ap1 Negate $ square $ Ap1 Csc m2
       where square x = Ap2 Exponent x $ ExpRatio $ 2 % 1
+    _ -> Right o
+  Ap1 Negate (Ap1 Negate n) -> Right n
+  Ap1 Negate (ExpRatio n) -> Right $ ExpRatio (- n)
   Ap1 f x -> Ap1 f <$> exceptionallyEvaluate x
   Ap2 Product (Ap1 Negate a) b -> Right $ Ap1 Negate $ Ap2 Product a b
   Ap2 Product (ExpRatio a) (ExpRatio b) -> Right $ ExpRatio $ a * b
