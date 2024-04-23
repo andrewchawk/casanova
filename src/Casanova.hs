@@ -94,6 +94,9 @@ data FunctionM2 =
   Flip FunctionM2 |
   -- | This value represents the sum function.
   Sum |
+  -- | This value represents the logarithm function.  @Ap2 Logarithm b n@ is the
+  -- base-n logarithm of @n@.
+  Logarithm |
   -- | This value represents the product function.
   Product |
   -- | This value represents the division function.  @Ap2 Quotient a b@ is the
