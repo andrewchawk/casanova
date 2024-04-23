@@ -1,3 +1,5 @@
+module Casanova where
+
 import Data.Ratio
 import Data.Either
 import Data.Complex
