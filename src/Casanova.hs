@@ -16,10 +16,9 @@ type Exceptional a = Either String a
 --
 -- Casanova lacks obvious support for floating-point numbers because
 -- floating-point arithmetic is imprecise, accumulates errors, and can mislead. 
--- Instead, Casanova uses arbitrary-precision ratios and dedicated values for
--- positive and negative infinities.  The properties of floating-point
--- arithmetic enable the direct translation of floating-point values, so nothing
--- is really lost.
+-- Instead, Casanova uses arbitrary-precision ratios and a dedicated value for
+-- infinity.  The properties of floating-point arithmetic enable the direct
+-- translation of floating-point values, so nothing is really lost.
 data Expression =
   -- | This bit is used to represent variables.  The 'String' value is the
   -- name of the variable.  Using empty variable names is allowed but is
@@ -31,9 +30,6 @@ data Expression =
   -- | 'Infinity' is just infinity.  This value behaves like the infinity of the
   -- floating-point numbers.
   Infinity |
-  -- | This value behaves like the negative infinity of the floating-point
-  -- numbers.
-  NegativeInfinity |
   -- | Any such value represents the application of a function to the specified
   -- expression.
   Ap1 FunctionM1 Expression |
@@ -164,7 +160,6 @@ iterate2 f x n = if n <= 0 then x else f $ iterate2 f x $ n - 1
 isZero :: Expression -> Maybe Bool
 isZero (Variable _) = Nothing
 isZero Infinity = Just False
-isZero NegativeInfinity = Just False
 isZero (ExpRatio x) = Just $ numerator x == 0
 isZero x = either (const Nothing) recurseIfDifferent $ e x
   where
@@ -177,7 +172,6 @@ isZero x = either (const Nothing) recurseIfDifferent $ e x
 isOne :: Expression -> Maybe Bool
 isOne (Variable _) = Nothing
 isOne Infinity = Just False
-isOne NegativeInfinity = Just False
 isOne (ExpRatio x) = Just $ x == 1 % 1
 isOne x = either (const Nothing) recurseIfDifferent $ e x
   where
@@ -209,7 +203,6 @@ exceptionallyEvaluate :: Expression -> Exceptional Expression
 exceptionallyEvaluate o = case o of
   Variable _ -> Right o
   Infinity -> Right o
-  NegativeInfinity -> Right o
   ExpRatio _ -> Right o
   Ap1 (Lambda x n) m -> Right $ subst1 x m n
   Ap1 (Limit x n) m -> case m of
@@ -226,7 +219,6 @@ exceptionallyEvaluate o = case o of
   Ap1 (Diff x) m -> case m of
     Variable x2 -> Right $ if x2 == x then ExpRatio (1 % 1) else o
     Infinity -> Right $ ExpRatio $ 0 % 1
-    NegativeInfinity -> Right $ ExpRatio $ 0 % 1
     ExpRatio _ -> Right $ ExpRatio $ 0 % 1
     Ap2 Product m1 m2 ->
       Right $ Ap2 Sum
@@ -283,7 +275,6 @@ exceptionallyEvaluate o = case o of
   Ap2 f fa@(Ap2 _ _ _) v@(Variable _) -> Right $ if isCommutative f then Ap2 f v fa else o
   Ap2 f v@(Variable _) n@(ExpRatio _) -> Right $ if isCommutative f then Ap2 f n v else o
   Ap2 f v@(Variable _) n@Infinity -> Right $ if isCommutative f then Ap2 f n v else o
-  Ap2 f v@(Variable _) n@NegativeInfinity -> Right $ if isCommutative f then Ap2 f n v else o
   Ap2 f a b -> Ap2 f <$> exceptionallyEvaluate a <*> exceptionallyEvaluate b
 
 -- | @recursiveExceptionallyEvaluate@ is like 'exceptionallyEvaluate' but
