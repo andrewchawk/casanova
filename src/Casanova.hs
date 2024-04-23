@@ -214,8 +214,10 @@ exceptionallyEvaluate o = case o of
        subst1 x n m]
     _
       | subst1 x n m == m -> Right m
-      | otherwise -> Right o
+      | otherwise -> Ap1 (Limit x n) <$> exceptionallyEvaluate m
     ExpRatio b -> Right m
+  Ap1 (Diff x) m | e /= Right m -> Ap1 (Diff x) <$> e
+    where e = exceptionallyEvaluate m
   Ap1 (Diff x) m -> case m of
     Variable x2 -> Right $ if x2 == x then ExpRatio (1 % 1) else o
     Infinity -> Right $ ExpRatio $ 0 % 1
