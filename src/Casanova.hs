@@ -207,52 +207,8 @@ exceptionallyEvaluate o = case o of
   Euler -> Right o
   ExpRatio _ -> Right o
   Ap1 (Lambda x n) m -> Right $ subst1 x m n
-  Ap1 (Limit x n) m -> case m of
-    Variable x2 -> Right $ if x == x2 then n else o
-    Ap2 Quotient m1 m2 -> exceptionalSequence $ map recursiveExceptionallyEvaluate
-      [Ap2 Quotient (Ap1 (Limit x n) m1) (Ap1 (Limit x n) m2),
-       subst1 x n m]
-    _
-      | subst1 x n m == m -> Right m
-      | otherwise -> Ap1 (Limit x n) <$> exceptionallyEvaluate m
-    ExpRatio b -> Right m
-  Ap1 (Diff x) m | e /= Right m -> Ap1 (Diff x) <$> e
-    where e = exceptionallyEvaluate m
-  Ap1 (Diff x) m -> case m of
-    Variable x2 -> Right $ if x2 == x then ExpRatio (1 % 1) else o
-    Infinity -> Right $ ExpRatio $ 0 % 1
-    ExpRatio _ -> Right $ ExpRatio $ 0 % 1
-    Ap2 Exponent Euler (Variable x2)
-      | x2 == x -> Right m
-    Ap2 Product m1 m2 ->
-      Right $ Ap2 Sum
-        (Ap2 Product (Ap1 (Diff x) m1) m2)
-        (Ap2 Product (Ap1 (Diff x) m2) m1)
-    Ap1 Negate f -> Right $ Ap1 Negate $ Ap1 (Diff x) f
-    Ap1 f (Ap1 g e) -> Ap2 Product gDiff <$> diffCompose
-      where
-      gDiff = Ap1 (Diff x) $ Ap1 g e
-      diffCompose = flip Ap1 (Ap1 g e) <$> diffF
-      -- At least in the case of sin (sin x), the following use of
-      -- exceptionallyEvaluate prevents infinite recursion.  Debugging this part
-      -- burned up a decent chunk of my time, and unless the handling of lambdas
-      -- is fundamentally changed, we should probably keep using
-      -- exceptionallyEvaluate.
-      diffF = Lambda x <$> exceptionallyEvaluate (Ap1 (Diff x) $ Ap1 f e)
-    Ap1 Sin m2
-      | m2 == Variable x -> Right $ Ap1 Cos m2
-    Ap1 Cos m2
-      | m2 == Variable x -> Right $ Ap1 Negate $ Ap1 Sin m2
-    Ap1 Tan m2
-      | m2 == Variable x -> Right $ Ap2 Exponent (Ap1 Sec m2) (ExpRatio $ 2 % 1)
-    Ap1 Csc m2
-      | m2 == Variable x -> Right $ Ap2 Product (Ap1 Negate $ Ap1 Cot m2) (Ap1 Csc m2)
-    Ap1 Sec m2
-      | m2 == Variable x -> Right $ Ap2 Product (Ap1 Sec m2) (Ap1 Tan m2)
-    Ap1 Cot m2
-      | m2 == Variable x -> Right $ Ap1 Negate $ square $ Ap1 Csc m2
-      where square x = Ap2 Exponent x $ ExpRatio $ 2 % 1
-    _ -> Right o
+  Ap1 (Limit x n) m -> exceptionallyEvaluateLimit x n m
+  Ap1 (Diff x) m -> exceptionallyEvaluateDiff x m
   Ap1 Negate (Ap1 Negate n) -> Right n
   Ap1 Negate (ExpRatio n) -> Right $ ExpRatio (- n)
   Ap1 f x -> Ap1 f <$> exceptionallyEvaluate x
@@ -295,6 +251,63 @@ exceptionallyEvaluate o = case o of
   Ap2 f v@(Variable _) n@(ExpRatio _) -> Right $ if isCommutative f then Ap2 f n v else o
   Ap2 f v@(Variable _) n@Infinity -> Right $ if isCommutative f then Ap2 f n v else o
   Ap2 f a b -> Ap2 f <$> exceptionallyEvaluate a <*> exceptionallyEvaluate b
+
+-- | @exceptionallyEvaluateDiff x m@ is the result of doing a single step of
+-- evaluation on @Ap1 (Diff x) m@.
+exceptionallyEvaluateDiff :: String -> Expression -> Exceptional Expression
+exceptionallyEvaluateDiff x m
+  | exceptionallyEvaluate m /= Right m = Ap1 (Diff x) <$> exceptionallyEvaluate m
+  | otherwise = case m of
+    Variable x2 -> Right $ if x2 == x then ExpRatio (1 % 1) else Ap1 (Diff x) m
+    Infinity -> Right $ ExpRatio $ 0 % 1
+    ExpRatio _ -> Right $ ExpRatio $ 0 % 1
+    Ap2 Exponent Euler (Variable x2)
+      | x2 == x -> Right m
+    Ap2 Product m1 m2 ->
+      Right $ Ap2 Sum
+        (Ap2 Product (Ap1 (Diff x) m1) m2)
+        (Ap2 Product (Ap1 (Diff x) m2) m1)
+    Ap1 Negate f -> Right $ Ap1 Negate $ Ap1 (Diff x) f
+    Ap1 f (Ap1 g e) -> Ap2 Product gDiff <$> diffCompose
+      where
+      gDiff = Ap1 (Diff x) $ Ap1 g e
+      diffCompose = flip Ap1 (Ap1 g e) <$> diffF
+      -- At least in the case of sin (sin x), the following use of
+      -- exceptionallyEvaluate prevents infinite recursion.  Debugging this part
+      -- burned up a decent chunk of my time, and unless the handling of lambdas
+      -- is fundamentally changed, we should probably keep using
+      -- exceptionallyEvaluate.
+      diffF = Lambda x <$> exceptionallyEvaluate (Ap1 (Diff x) $ Ap1 f e)
+    Ap1 Sin m2
+      | m2 == Variable x -> Right $ Ap1 Cos m2
+    Ap1 Cos m2
+      | m2 == Variable x -> Right $ Ap1 Negate $ Ap1 Sin m2
+    Ap1 Tan m2
+      | m2 == Variable x -> Right $ Ap2 Exponent (Ap1 Sec m2) (ExpRatio $ 2 % 1)
+    Ap1 Csc m2
+      | m2 == Variable x -> Right $ Ap2 Product (Ap1 Negate $ Ap1 Cot m2) (Ap1 Csc m2)
+    Ap1 Sec m2
+      | m2 == Variable x -> Right $ Ap2 Product (Ap1 Sec m2) (Ap1 Tan m2)
+    Ap1 Cot m2
+      | m2 == Variable x -> Right $ Ap1 Negate $ square $ Ap1 Csc m2
+      where square x = Ap2 Exponent x $ ExpRatio $ 2 % 1
+    _ -> Right $ Ap1 (Diff x) m
+
+-- | @exceptionallyEvaluateLimit x n m@ is the result of doing a single
+-- evaluation step on @Ap1 (Limit x n) m@.
+exceptionallyEvaluateLimit :: String
+                           -> Expression
+                           -> Expression
+                           -> Exceptional Expression
+exceptionallyEvaluateLimit x n m = case m of
+  Variable x2 -> Right $ if x == x2 then n else Ap1 (Limit x n) m
+  Ap2 Quotient m1 m2 -> exceptionalSequence $ map recursiveExceptionallyEvaluate
+    [Ap2 Quotient (Ap1 (Limit x n) m1) (Ap1 (Limit x n) m2),
+     subst1 x n m]
+  _
+    | subst1 x n m == m -> Right m
+    | otherwise -> Ap1 (Limit x n) <$> exceptionallyEvaluate m
+  ExpRatio b -> Right m
 
 -- | @recursiveExceptionallyEvaluate@ is like 'exceptionallyEvaluate' but
 -- performs multiple evaluation steps.  The output contains a simplification
