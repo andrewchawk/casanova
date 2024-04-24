@@ -37,7 +37,8 @@ main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
       (\z -> Ap2 Quotient z z) $ ExpRatio $ 0 % 1,
       Nothing),
      ("Square of square root of -1",
-      Ap2 (Flip Exponent) (ExpRatio $ 2 % 1) $ Ap2 Exponent (ExpRatio $ (-1) % 1) $ ExpRatio $ 1 % 2,
+      let i = Ap2 Exponent (ExpRatio $ (-1) % 1) $ ExpRatio $ 1 % 2 in
+      Ap2 Exponent i $ ExpRatio $ 2 % 1,
       Just $ ExpRatio $ (-1) % 1),
      ("Adding infinity and negative infinity",
       Ap2 Sum Infinity $ Ap1 Negate Infinity,
@@ -81,18 +82,18 @@ testsForLambda =
 testsForExpRatio :: [TestCase]
 testsForExpRatio =
   [("Basic ExpRatio addition",
-    Ap2 Sum (ExpRatio $ fst a % snd a) (ExpRatio $ fst b % snd b),
-    Just $ ExpRatio $ (fst a % snd a) + (fst b % snd b)),
+    Ap2 Sum (ExpRatio a) (ExpRatio b),
+    Just $ ExpRatio $ a + b),
    ("Basic ExpRatio subtraction",
-    Ap2 Sum (ExpRatio $ fst a % snd a) (Ap1 Negate $ ExpRatio $ fst b % snd b),
-    Just $ ExpRatio $ (fst a % snd a) - (fst b % snd b)),
+    Ap2 Sum (ExpRatio a) (Ap1 Negate $ ExpRatio b),
+    Just $ ExpRatio $ a - b),
    ("Basic ExpRatio multiplication",
-    Ap2 Product (ExpRatio $ fst a % snd a) (ExpRatio $ fst b % snd b),
-    Just $ ExpRatio $ (fst a % snd a) * (fst b % snd b)),
+    Ap2 Product (ExpRatio a) (ExpRatio b),
+    Just $ ExpRatio $ a * b),
    ("Basic ExpRatio division",
-    Ap2 Quotient (ExpRatio $ fst a % snd a) (ExpRatio $ fst b % snd b),
-    Just $ ExpRatio $ (fst a % snd a) / (fst b % snd b))]
-  where (a,b) = ((2407620, 45672), (28467, 329057))
+    Ap2 Quotient (ExpRatio a) (ExpRatio b),
+    Just $ ExpRatio $ a / b)]
+  where (a,b) = (2407620 % 45672, 28467 % 329057)
 
 -- | This value is a list of test cases which mostly pertain to the process of
 -- converting to normal form.
