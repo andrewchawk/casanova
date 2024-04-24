@@ -44,18 +44,18 @@ main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
     testsForExpRatio ++
     testsForNormalForm ++
      [("Dividing by zero zero",
-      (\z -> Ap2 Quotient z z) $ ExpRatio $ 0 % 1,
+      (\z -> Ap2 Quotient z z) $ ExpRatio 0,
       Nothing),
      ("Square of square root of -1",
-      let i = Ap2 Exponent (ExpRatio $ (-1) % 1) $ ExpRatio $ 1 % 2 in
-      Ap2 Exponent i $ ExpRatio $ 2 % 1,
-      Just $ ExpRatio $ (-1) % 1),
+      let i = Ap2 Exponent (ExpRatio (-1)) $ ExpRatio $ 1 % 2 in
+      Ap2 Exponent i $ ExpRatio 2,
+      Just $ ExpRatio (-1)),
      ("Derivative of e^x",
       Ap1 (Diff "x") $ Ap2 Exponent Euler $ Variable "x",
       Just $ Ap2 Exponent Euler $ Variable "x"),
      ("Adding infinity and negative infinity",
       Ap2 Sum Infinity $ Ap1 Negate Infinity,
-      Just $ ExpRatio $ 0 % 1)]
+      Just $ ExpRatio 0)]
 
 -- | Values of this type can be used as input for 'checkExpEquality' and,
 -- therefore, are test cases.
@@ -84,18 +84,18 @@ testsForLimit =
     Ap1 (Limit "x" Infinity) $
       Ap2 (Flip Exponent)
         (Variable "x")
-        (fromIntegral 1 + Ap2 Quotient (ExpRatio $ 1 % 1) (Variable "x")),
+        (ExpRatio 1 + Ap2 Quotient (ExpRatio 1) (Variable "x")),
     Just Euler),
    ("Limit of (a^2 + a) / a as a approaches 0",
-    Ap1 (Limit "a" $ fromIntegral 0) $
+    Ap1 (Limit "a" $ ExpRatio 0) $
       Ap2 (Flip Quotient) (Variable "a") $
-        Ap2 Sum (Ap2 Exponent (Variable "a") $ fromIntegral 2) (Variable "a"),
-    Just $ fromIntegral 1),
+        Ap2 Sum (Ap2 Exponent (Variable "a") $ ExpRatio 2) (Variable "a"),
+    Just $ ExpRatio 1),
    ("Limit of x / (x+1)",
     Ap1 (Limit "x" Infinity) $
       Ap2 Quotient (Variable "x")
-        (Ap2 Sum (Variable "x") (ExpRatio $ 1 % 1)),
-    Just $ ExpRatio $ 1 % 1)]
+        (Ap2 Sum (Variable "x") (ExpRatio 1)),
+    Just $ ExpRatio 1)]
 
 -- | This value is a list of test cases which mostly pertain to 'Lambda'.
 testsForLambda :: [TestCase]
@@ -123,10 +123,10 @@ testsForExpRatio =
     Ap2 Quotient (ExpRatio a) (ExpRatio b),
     Just $ ExpRatio $ a / b),
    ("Exponent of ExpRatios with common denominator of one",
-    Ap2 Exponent (fromIntegral 2) $ fromIntegral 5,
-    Just $ fromIntegral $ 2 ^ 5),
+    Ap2 Exponent (ExpRatio 2) $ ExpRatio 5,
+    Just $ ExpRatio $ 2 ^ 5),
    ("Negative exponent of ExpRatios with common denominator of one",
-    Ap2 Exponent (fromIntegral 2) $ fromIntegral (- 5),
+    Ap2 Exponent (ExpRatio 2) $ ExpRatio (- 5),
     Just $ ExpRatio $ 1 / 2 ^ 5)]
   where (a,b) = (2407620 % 45672, 28467 % 329057)
 
@@ -135,5 +135,5 @@ testsForExpRatio =
 testsForNormalForm :: [TestCase]
 testsForNormalForm =
   [("Normal form conversion of x * 2/1",
-    Ap2 Product (Variable "x") (ExpRatio $ 2 % 1),
-    Just $ Ap2 Product (ExpRatio $ 2 % 1) (Variable "x"))]
+    Ap2 Product (Variable "x") (ExpRatio 2),
+    Just $ Ap2 Product (ExpRatio 2) (Variable "x"))]

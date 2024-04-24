@@ -173,7 +173,7 @@ isZero x = either (const Nothing) recurseIfDifferent $ e x
 isOne :: Expression -> Maybe Bool
 isOne (Variable _) = Nothing
 isOne Infinity = Just False
-isOne (ExpRatio x) = Just $ x == 1 % 1
+isOne (ExpRatio x) = Just $ x == 1
 isOne x = either (const Nothing) recurseIfDifferent $ e x
   where
   e = recursiveExceptionallyEvaluate
@@ -224,9 +224,9 @@ exceptionallyEvaluate o = case o of
     | denominator y == 1 && numerator y < 1 -> Right $ ExpRatio $ iterate2 (/ x) x (abs (numerator y) + 1)
   Ap2 Exponent b e
     | isOne e == Just True -> Right b
-    | isZero e == Just True && isZero b == Just False -> Right $ ExpRatio $ 1 % 1
-    | isOne b == Just True -> Right $ ExpRatio $ 1 % 1
-    | isZero b == Just True && isZero e == Just False -> Right $ ExpRatio $ 0 % 0
+    | isZero e == Just True && isZero b == Just False -> Right $ ExpRatio 1
+    | isOne b == Just True -> Right $ ExpRatio 1
+    | isZero b == Just True && isZero e == Just False -> Right $ ExpRatio 0
   Ap2 Product (Ap1 Negate a) b -> Right $ Ap1 Negate $ Ap2 Product a b
   Ap2 Product (ExpRatio a) (ExpRatio b) -> Right $ ExpRatio $ a * b
   Ap2 Product a b
@@ -234,18 +234,18 @@ exceptionallyEvaluate o = case o of
   Ap2 Quotient a b
     | isZero b == Just True -> Left "Division by zero is undefined."
     | isOne b == Just True -> Right a
-    | recursiveExceptionallyEvaluate a == recursiveExceptionallyEvaluate b -> Right $ ExpRatio $ 1 / 1
+    | recursiveExceptionallyEvaluate a == recursiveExceptionallyEvaluate b -> Right $ ExpRatio 1
     | otherwise -> case (a, b) of
         (ExpRatio a, ExpRatio b) -> Right $ ExpRatio $ a / b
         _ -> Right o
   Ap2 Sum a (Ap1 Negate b)
-    | e a == e b -> Right $ ExpRatio $ 0 % 1
+    | e a == e b -> Right $ ExpRatio 0
     where e = recursiveExceptionallyEvaluate
   Ap2 Sum (ExpRatio a) (ExpRatio b) -> Right $ ExpRatio $ a + b
   Ap2 Sum a b
       -- The evaluation is just useful for combining addition expressions into
       -- multiplication expressions.
-    | a2 == b2 && isRight a2 -> Right $ Ap2 Product (ExpRatio $ 2 % 1) a
+    | a2 == b2 && isRight a2 -> Right $ Ap2 Product (ExpRatio 2) a
     where [a2,b2] = map recursiveExceptionallyEvaluate [a,b]
   -- These "Ap2 f" matches which refer to variables are really just useful
   -- for converting expressions into the normal form.  No real computation
@@ -264,9 +264,9 @@ exceptionallyEvaluateDiff :: String -> Expression -> Exceptional Expression
 exceptionallyEvaluateDiff x m
   | exceptionallyEvaluate m /= Right m = Ap1 (Diff x) <$> exceptionallyEvaluate m
   | otherwise = case m of
-    Variable x2 -> Right $ if x2 == x then ExpRatio (1 % 1) else Ap1 (Diff x) m
-    Infinity -> Right $ ExpRatio $ 0 % 1
-    ExpRatio _ -> Right $ ExpRatio $ 0 % 1
+    Variable x2 -> Right $ if x2 == x then ExpRatio 1 else Ap1 (Diff x) m
+    Infinity -> Right $ ExpRatio 0
+    ExpRatio _ -> Right $ ExpRatio 0
     Ap2 Exponent Euler (Variable x2)
       | x2 == x -> Right m
     Ap2 Product m1 m2 ->
@@ -289,14 +289,14 @@ exceptionallyEvaluateDiff x m
     Ap1 Cos m2
       | m2 == Variable x -> Right $ Ap1 Negate $ Ap1 Sin m2
     Ap1 Tan m2
-      | m2 == Variable x -> Right $ Ap2 Exponent (Ap1 Sec m2) (ExpRatio $ 2 % 1)
+      | m2 == Variable x -> Right $ Ap2 Exponent (Ap1 Sec m2) (ExpRatio 2)
     Ap1 Csc m2
       | m2 == Variable x -> Right $ Ap2 Product (Ap1 Negate $ Ap1 Cot m2) (Ap1 Csc m2)
     Ap1 Sec m2
       | m2 == Variable x -> Right $ Ap2 Product (Ap1 Sec m2) (Ap1 Tan m2)
     Ap1 Cot m2
       | m2 == Variable x -> Right $ Ap1 Negate $ square $ Ap1 Csc m2
-      where square x = Ap2 Exponent x $ ExpRatio $ 2 % 1
+      where square x = Ap2 Exponent x $ ExpRatio 2
     _ -> Right $ Ap1 (Diff x) m
 
 -- | @exceptionallyEvaluateLimit x n m@ is the result of doing a single
@@ -313,7 +313,7 @@ exceptionallyEvaluateLimit x n m = case m of
   Ap2 Exponent
     (Ap2 Sum n1 (Ap2 Quotient n2 (Variable m1)))
     (Variable m2)
-    | [m1,m2] == [x,x] &&  [n1, n2] == replicate 2 (ExpRatio $ 1 % 1) -> Right Euler
+    | [m1,m2] == [x,x] &&  [n1, n2] == replicate 2 (ExpRatio 1) -> Right Euler
   Variable x2 -> Right $ if x == x2 then n else Ap1 (Limit x n) m
   Ap2 Quotient m1 m2 -> exceptionalSequence $ map recursiveExceptionallyEvaluate
     [Ap2 Quotient (Ap1 (Limit x n) m1) (Ap1 (Limit x n) m2),
