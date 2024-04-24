@@ -24,8 +24,8 @@ sequenceEqualityErrors x = case catMaybes x of
 main :: IO ()
 main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
   where
-  printFailMsg t = putStrLn $ "The following test cases failed:\n" ++ failList
-    where failList = unlines $ map ("- " ++) t
+  printFailMsg t = putStrLn "The following test cases failed:\n" >> mapM_ printError t
+    where printError = putStrLn . ("- " ++)
   chkEquality (a,b,c) = checkExpEquality a b c
   equalChkResults = sequenceEqualityErrors $ map chkEquality $
     [("Limit of infinity as x approaches infinity",
