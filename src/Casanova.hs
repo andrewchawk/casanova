@@ -29,6 +29,8 @@ data Expression =
   -- | 'Infinity' is just infinity.  This value behaves like the infinity of the
   -- floating-point numbers.
   Infinity |
+  -- | 'Euler' represents Euler's number.
+  Euler |
   -- | Any such value represents the application of a function to the specified
   -- expression.
   Ap1 FunctionM1 Expression |
@@ -202,6 +204,7 @@ exceptionallyEvaluate :: Expression -> Exceptional Expression
 exceptionallyEvaluate o = case o of
   Variable _ -> Right o
   Infinity -> Right o
+  Euler -> Right o
   ExpRatio _ -> Right o
   Ap1 (Lambda x n) m -> Right $ subst1 x m n
   Ap1 (Limit x n) m -> case m of
@@ -219,6 +222,8 @@ exceptionallyEvaluate o = case o of
     Variable x2 -> Right $ if x2 == x then ExpRatio (1 % 1) else o
     Infinity -> Right $ ExpRatio $ 0 % 1
     ExpRatio _ -> Right $ ExpRatio $ 0 % 1
+    Ap2 Exponent Euler (Variable x2)
+      | x2 == x -> Right m
     Ap2 Product m1 m2 ->
       Right $ Ap2 Sum
         (Ap2 Product (Ap1 (Diff x) m1) m2)

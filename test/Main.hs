@@ -43,6 +43,9 @@ main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
       let i = Ap2 Exponent (ExpRatio $ (-1) % 1) $ ExpRatio $ 1 % 2 in
       Ap2 Exponent i $ ExpRatio $ 2 % 1,
       Just $ ExpRatio $ (-1) % 1),
+     ("Derivative of e^x",
+      Ap1 (Diff "x") $ Ap2 Exponent Euler $ Variable "x",
+      Just $ Ap2 Exponent Euler $ Variable "x"),
      ("Adding infinity and negative infinity",
       Ap2 Sum Infinity $ Ap1 Negate Infinity,
       Just $ ExpRatio $ 0 % 1)]
