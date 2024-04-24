@@ -11,10 +11,17 @@ import Data.Ratio
 -- evaluated to some 'Left' value, then @checkExpressionEquality s x Nothing@
 -- is 'Nothing'.  Otherwise, @checkExpressionEquality s x y@ is @'Just' s@.
 checkExpEquality :: String -> Expression -> Maybe Expression -> Maybe String
-checkExpEquality s x (Just y) = if match then Nothing else Just s
-  where match = recursiveExceptionallyEvaluate x == Right y
-checkExpEquality s x Nothing = if isLeft e then Nothing else Just s
-  where e = recursiveExceptionallyEvaluate x
+checkExpEquality s x (Just y) = if e == Right y then Nothing else Just s2
+  where
+  e = recursiveExceptionallyEvaluate x
+  s2 = s ++ " (" ++ expected ++ "; " ++ actual ++ ")"
+    where
+    expected = "Expected result: " ++ show (Right y :: Exceptional Expression)
+    actual = "Actual result: " ++ show e
+checkExpEquality s x Nothing = if isLeft e then Nothing else Just s2
+  where
+  e = recursiveExceptionallyEvaluate x
+  s2 = s ++ " (Expecting a Left value but got " ++ show e ++ ")"
 
 -- | If all values in @x@ are 'Nothing', then @sequenceEqualityErrors x@ is also
 -- 'Nothing'.  Otherwise, @sequenceEqualityErrors x@ is a list of all 'Just'
