@@ -16,6 +16,9 @@ checkExpEquality s x (Just y) = if match then Nothing else Just s
 checkExpEquality s x Nothing = if isLeft e then Nothing else Just s
   where e = recursiveExceptionallyEvaluate x
 
+-- | If all values in @x@ are 'Nothing', then @sequenceEqualityErrors x@ is also
+-- 'Nothing'.  Otherwise, @sequenceEqualityErrors x@ is a list of all 'Just'
+-- elements of @x@.
 sequenceEqualityErrors :: [Maybe String] -> Maybe [String]
 sequenceEqualityErrors x = case catMaybes x of
   [] -> Nothing

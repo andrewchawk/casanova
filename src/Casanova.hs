@@ -2,7 +2,6 @@ module Casanova where
 
 import Data.Ratio
 import Data.Either
-import Data.Complex
 
 -- | This datatype facilitates error handling.  @Left@ values indicate -- and
 -- contain useful descriptions of -- errors which are encountered when
@@ -15,7 +14,7 @@ type Exceptional a = Either String a
 -- = The Lack of Support for Floating-Point Numbers
 --
 -- Casanova lacks obvious support for floating-point numbers because
--- floating-point arithmetic is imprecise, accumulates errors, and can mislead. 
+-- floating-point arithmetic is imprecise, accumulates errors, and can mislead.
 -- Instead, Casanova uses arbitrary-precision ratios and a dedicated value for
 -- infinity.  The properties of floating-point arithmetic enable the direct
 -- translation of floating-point values, so nothing is really lost.
@@ -227,7 +226,6 @@ exceptionallyEvaluate o = case o of
     Ap1 Negate f -> Right $ Ap1 Negate $ Ap1 (Diff x) f
     Ap1 f (Ap1 g e) -> Ap2 Product gDiff <$> diffCompose
       where
-      diff f x = Lambda x $ Ap1 (Diff x) $ Ap1 f $ Variable x
       gDiff = Ap1 (Diff x) $ Ap1 g e
       diffCompose = flip Ap1 (Ap1 g e) <$> diffF
       -- At least in the case of sin (sin x), the following use of
