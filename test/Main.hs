@@ -79,7 +79,23 @@ testsForLimit =
     Just Infinity),
    ("Limit of x as x approaches n",
     Ap1 (Limit "x" $ Variable "n") (Variable "x"),
-    Just $ Variable "n")]
+    Just $ Variable "n"),
+   ("Using a limit to calculate e",
+    Ap1 (Limit "x" Infinity) $
+      Ap2 (Flip Exponent)
+        (Variable "x")
+        (fromIntegral 1 + Ap2 Quotient (ExpRatio $ 1 % 1) (Variable "x")),
+    Just Euler),
+   ("Limit of (a^2 + a) / a as a approaches 0",
+    Ap1 (Limit "a" $ fromIntegral 0) $
+      Ap2 (Flip Quotient) (Variable "a") $
+        Ap2 Sum (Ap2 Exponent (Variable "a") $ fromIntegral 2) (Variable "a"),
+    Just $ fromIntegral 1),
+   ("Limit of x / (x+1)",
+    Ap1 (Limit "x" Infinity) $
+      Ap2 Quotient (Variable "x")
+        (Ap2 Sum (Variable "x") (ExpRatio $ 1 % 1)),
+    Just $ ExpRatio $ 1 % 1)]
 
 -- | This value is a list of test cases which mostly pertain to 'Lambda'.
 testsForLambda :: [TestCase]
@@ -105,7 +121,13 @@ testsForExpRatio =
     Just $ ExpRatio $ a * b),
    ("Basic ExpRatio division",
     Ap2 Quotient (ExpRatio a) (ExpRatio b),
-    Just $ ExpRatio $ a / b)]
+    Just $ ExpRatio $ a / b),
+   ("Exponent of ExpRatios with common denominator of one",
+    Ap2 Exponent (fromIntegral 2) $ fromIntegral 5,
+    Just $ fromIntegral $ 2 ^ 5),
+   ("Negative exponent of ExpRatios with common denominator of one",
+    Ap2 Exponent (fromIntegral 2) $ fromIntegral (- 5),
+    Just $ ExpRatio $ 1 / 2 ^ 5)]
   where (a,b) = (2407620 % 45672, 28467 % 329057)
 
 -- | This value is a list of test cases which mostly pertain to the process of
