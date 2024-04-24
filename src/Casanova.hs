@@ -256,6 +256,15 @@ exceptionallyEvaluate o = case o of
   Ap1 Negate (Ap1 Negate n) -> Right n
   Ap1 Negate (ExpRatio n) -> Right $ ExpRatio (- n)
   Ap1 f x -> Ap1 f <$> exceptionallyEvaluate x
+  Ap2 Exponent (Ap2 Exponent b e1) e2 -> Right $ Ap2 Exponent b $ Ap2 Product e1 e2
+  Ap2 Exponent (Ap2 Logarithm b x) e
+    | r b == r e && isRight (r b) -> Right x
+    where r = recursiveExceptionallyEvaluate
+  Ap2 Exponent b e
+    | isOne e == Just True -> Right b
+    | isZero e == Just True && isZero b == Just False -> Right $ ExpRatio $ 1 % 1
+    | isOne b == Just True -> Right $ ExpRatio $ 1 % 1
+    | isZero b == Just True && isZero e == Just False -> Right $ ExpRatio $ 0 % 0
   Ap2 Product (Ap1 Negate a) b -> Right $ Ap1 Negate $ Ap2 Product a b
   Ap2 Product (ExpRatio a) (ExpRatio b) -> Right $ ExpRatio $ a * b
   Ap2 Product a b
