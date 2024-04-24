@@ -212,10 +212,16 @@ exceptionallyEvaluate o = case o of
   Ap1 Negate (Ap1 Negate n) -> Right n
   Ap1 Negate (ExpRatio n) -> Right $ ExpRatio (- n)
   Ap1 f x -> Ap1 f <$> exceptionallyEvaluate x
+  Ap2 (Flip f) x y -> Right $ Ap2 f y x
   Ap2 Exponent (Ap2 Exponent b e1) e2 -> Right $ Ap2 Exponent b $ Ap2 Product e1 e2
   Ap2 Exponent (Ap2 Logarithm b x) e
     | r b == r e && isRight (r b) -> Right x
     where r = recursiveExceptionallyEvaluate
+  Ap2 Exponent (ExpRatio x) (ExpRatio y)
+    -- The subtraction and addition ensure that exponents of 1 are ignored
+    -- within @iterate2@.
+    | denominator y == 1 && numerator y > 1 -> Right $ ExpRatio $ iterate2 (* x) x (numerator y - 1)
+    | denominator y == 1 && numerator y < 1 -> Right $ ExpRatio $ iterate2 (/ x) x (abs (numerator y) + 1)
   Ap2 Exponent b e
     | isOne e == Just True -> Right b
     | isZero e == Just True && isZero b == Just False -> Right $ ExpRatio $ 1 % 1
@@ -300,6 +306,14 @@ exceptionallyEvaluateLimit :: String
                            -> Expression
                            -> Exceptional Expression
 exceptionallyEvaluateLimit x n m = case m of
+  -- The following thing is kind of nasty but makes at least /some/ degree of
+  -- sense.  This limit is by definition Euler's number, and no real problems
+  -- with this simplification are known to the author.  However, ooh-wee, this
+  -- case /is/ mighty ugly!
+  Ap2 Exponent
+    (Ap2 Sum n1 (Ap2 Quotient n2 (Variable m1)))
+    (Variable m2)
+    | [m1,m2] == [x,x] &&  [n1, n2] == replicate 2 (ExpRatio $ 1 % 1) -> Right Euler
   Variable x2 -> Right $ if x == x2 then n else Ap1 (Limit x n) m
   Ap2 Quotient m1 m2 -> exceptionalSequence $ map recursiveExceptionallyEvaluate
     [Ap2 Quotient (Ap1 (Limit x n) m1) (Ap1 (Limit x n) m2),
