@@ -1,3 +1,5 @@
+{-# LANGUAGE PatternSynonyms #-}
+
 module Casanova where
 
 import Data.Ratio
@@ -98,9 +100,6 @@ data FunctionM2 =
   Logarithm |
   -- | This value represents the product function.
   Product |
-  -- | This value represents the division function.  @Ap2 Quotient a b@ is the
-  -- quotient of @a@ and @b@.
-  Quotient |
   -- | This value represents the exponentation function.
   Exponent |
   -- | This value is the function which outputs the minimum of the input
@@ -110,6 +109,14 @@ data FunctionM2 =
   -- arguments.
   Maximum
   deriving (Show, Eq)
+
+-- | Without this pattern synonym, the cases for division would be pretty nasty.
+--
+-- Admittedly, the name is pretty nasty, too, but the alternative is "Quotient",
+-- which is even /more/ inconsistent with the rest of the 'FunctionM2'
+-- applications.
+pattern Ap2Quotient a b <- Ap2 Product a (Ap2 Exponent b (ExpRatio (-1)))
+  where Ap2Quotient a b = Ap2 Product a $ Ap2 Exponent b $ ExpRatio $ -1
 
 -- | @subst1 n x f@ is the result of replacing with @x@ all of @f@'s bound
 -- instances of @Variable n@, skipping certain lambda expressions appropriately.
@@ -217,6 +224,11 @@ exceptionallyEvaluate o = case o of
   Ap2 Exponent (Ap2 Logarithm b x) e
     | r b == r e && isRight (r b) -> Right x
     where r = recursiveExceptionallyEvaluate
+  Ap2 Exponent b (ExpRatio e)
+    | isZero b == Just True && e < 0 -> Left $
+      "I tried to compute " ++ input ++ ", but raising 0 to a negative " ++
+      "exponent is undefined."
+      where input = "(" ++ show b ++ ") ^ (" ++ show (ExpRatio e) ++ ")"
   Ap2 Exponent (ExpRatio x) (ExpRatio y)
     -- The subtraction and addition ensure that exponents of 1 are ignored
     -- within @iterate2@.
@@ -231,13 +243,6 @@ exceptionallyEvaluate o = case o of
   Ap2 Product (ExpRatio a) (ExpRatio b) -> Right $ ExpRatio $ a * b
   Ap2 Product a b
     | Infinity `elem` [a,b] -> Right o
-  Ap2 Quotient a b
-    | isZero b == Just True -> Left "Division by zero is undefined."
-    | isOne b == Just True -> Right a
-    | recursiveExceptionallyEvaluate a == recursiveExceptionallyEvaluate b -> Right $ ExpRatio 1
-    | otherwise -> case (a, b) of
-        (ExpRatio a, ExpRatio b) -> Right $ ExpRatio $ a / b
-        _ -> Right o
   Ap2 Sum a (Ap1 Negate b)
     | e a == e b -> Right $ ExpRatio 0
     where e = recursiveExceptionallyEvaluate
@@ -311,12 +316,12 @@ exceptionallyEvaluateLimit x n m = case m of
   -- with this simplification are known to the author.  However, ooh-wee, this
   -- case /is/ mighty ugly!
   Ap2 Exponent
-    (Ap2 Sum n1 (Ap2 Quotient n2 (Variable m1)))
+    (Ap2 Sum n1 (Ap2Quotient n2 (Variable m1)))
     (Variable m2)
     | [m1,m2] == [x,x] &&  [n1, n2] == replicate 2 (ExpRatio 1) -> Right Euler
   Variable x2 -> Right $ if x == x2 then n else Ap1 (Limit x n) m
-  Ap2 Quotient m1 m2 -> exceptionalSequence $ map recursiveExceptionallyEvaluate
-    [Ap2 Quotient (Ap1 (Limit x n) m1) (Ap1 (Limit x n) m2),
+  Ap2Quotient m1 m2 -> exceptionalSequence $ map recursiveExceptionallyEvaluate
+    [Ap2Quotient (Ap1 (Limit x n) m1) (Ap1 (Limit x n) m2),
      subst1 x n m]
   _
     | subst1 x n m == m -> Right m

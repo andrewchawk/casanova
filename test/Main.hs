@@ -44,7 +44,7 @@ main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
     testsForExpRatio ++
     testsForNormalForm ++
      [("Dividing by zero zero",
-      (\z -> Ap2 Quotient z z) $ ExpRatio 0,
+      (\z -> Ap2Quotient z z) $ ExpRatio 0,
       Nothing),
      ("Square of square root of -1",
       let i = Ap2 Exponent (ExpRatio (-1)) $ ExpRatio $ 1 % 2 in
@@ -84,16 +84,17 @@ testsForLimit =
     Ap1 (Limit "x" Infinity) $
       Ap2 (Flip Exponent)
         (Variable "x")
-        (ExpRatio 1 + Ap2 Quotient (ExpRatio 1) (Variable "x")),
+        (ExpRatio 1 + Ap2Quotient (ExpRatio 1) (Variable "x")),
     Just Euler),
    ("Limit of (a^2 + a) / a as a approaches 0",
     Ap1 (Limit "a" $ ExpRatio 0) $
-      Ap2 (Flip Quotient) (Variable "a") $
-        Ap2 Sum (Ap2 Exponent (Variable "a") $ ExpRatio 2) (Variable "a"),
+      Ap2Quotient
+        (Ap2 Sum (Ap2 Exponent (Variable "a") $ ExpRatio 2) (Variable "a"))
+        (Variable "a"),
     Just $ ExpRatio 1),
    ("Limit of x / (x+1)",
     Ap1 (Limit "x" Infinity) $
-      Ap2 Quotient (Variable "x")
+      Ap2Quotient (Variable "x")
         (Ap2 Sum (Variable "x") (ExpRatio 1)),
     Just $ ExpRatio 1)]
 
@@ -123,7 +124,7 @@ testsForExpRatio =
     Ap2 Product (ExpRatio a) (ExpRatio b),
     Just $ ExpRatio $ a * b),
    ("Basic ExpRatio division",
-    Ap2 Quotient (ExpRatio a) (ExpRatio b),
+    Ap2Quotient (ExpRatio a) (ExpRatio b),
     Just $ ExpRatio $ a / b),
    ("Exponent of ExpRatios with common denominator of one",
     Ap2 Exponent (ExpRatio 2) $ ExpRatio 5,
