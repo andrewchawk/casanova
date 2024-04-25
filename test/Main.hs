@@ -55,7 +55,10 @@ main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
       Just $ Ap2 Exponent Euler $ Variable "x"),
      ("Adding infinity and negative infinity",
       Ap2 Sum Infinity $ Ap1 Negate Infinity,
-      Just $ ExpRatio 0)]
+      Just $ ExpRatio 0),
+     ("g ^ log(e,g)",
+      Ap2 Exponent (Variable "g") $ Ap2 Logarithm (Variable "e") (Variable "g"),
+      Just $ Variable "e")]
 
 -- | Values of this type can be used as input for 'checkExpEquality' and,
 -- therefore, are test cases.
