@@ -104,7 +104,10 @@ testsForLambda =
     Ap1 (Lambda "x" Infinity) $ Ap1 Negate Infinity,
     Just Infinity),
    ("Potentially tricky lambda substitution",
-    Ap1 (Lambda "x" $ Ap1 (Lambda "z" $ Variable "g") Infinity) $ Ap1 Negate Infinity,
+    Ap1
+      (Lambda "x" $
+        Ap1 (Lambda "z" $ Variable "g") Infinity) $
+      Ap1 Negate Infinity,
     Just $ Variable "g")]
 
 -- | This value is a list of test cases which mostly pertain to 'ExpRatio'.
@@ -127,7 +130,7 @@ testsForExpRatio =
     Just $ ExpRatio $ 2 ^ 5),
    ("Negative exponent of ExpRatios with common denominator of one",
     Ap2 Exponent (ExpRatio 2) $ ExpRatio (- 5),
-    Just $ ExpRatio $ 1 / 2 ^ 5)]
+    Just $ ExpRatio $ 1 % (2 ^ 5))]
   where (a,b) = (2407620 % 45672, 28467 % 329057)
 
 -- | This value is a list of test cases which mostly pertain to the process of
