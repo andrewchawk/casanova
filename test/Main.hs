@@ -61,6 +61,12 @@ main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
      ("Adding infinity and negative infinity",
       Ap2 Sum Infinity $ Ap1 Negate Infinity,
       Just $ ExpRatio 0),
+     ("2 * (a * 1/2)",
+      Ap2 Product (ExpRatio 2) $ Ap2 Product (Variable "a") $ ExpRatio $ 1 % 2,
+      Just $ Variable "a"),
+     ("2 * (1/2 * a)",
+      Ap2 Product (ExpRatio 2) $ Ap2 Product (ExpRatio $ 1 % 2) $ Variable "a",
+      Just $ Variable "a"),
      ("log(a^b,c)",
       Ap2 Logarithm (Ap2 Exponent (Variable "a") (Variable "b")) (Variable "c"),
       Just $ Ap2 Product (Variable "b") $
@@ -183,6 +189,9 @@ testsForIntegral =
       Ap2Quotient
         (Ap2 Exponent (Variable "x") $ ExpRatio 2)
         (ExpRatio 2)),
+   ("integrate(x+x,x)",
+    Ap1 (Integral "x") $ (\x -> x + x) $ Variable "x",
+    Just $ Ap2 Exponent (Variable "x") $ ExpRatio 2),
    ("integrate(3,x)",
     Ap1 (Integral "x") $ ExpRatio 3,
     Just $ Ap2 Product (ExpRatio 3) $ Variable "x"),

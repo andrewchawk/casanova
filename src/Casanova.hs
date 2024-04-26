@@ -339,6 +339,8 @@ exceptionallyEvaluateIntegral x m = case m of
   Variable x2
     | x2 == x -> exceptionallyEvaluateIntegral x $ Ap2 Exponent (Variable x) one
       where one = ExpRatio 1
+  Ap2 Sum m1 m2 -> Right $ Ap2 Sum (i m1) (i m2)
+    where i = Ap1 $ Integral x
   Ap2 Product c m
     | subst1 x (ExpRatio 9001) c == c -> Right $
         Ap2 Product c $ Ap1 (Integral x) m
