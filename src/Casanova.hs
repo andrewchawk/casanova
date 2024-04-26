@@ -210,6 +210,7 @@ exceptionallyEvaluate o = case o of
   Ap1 (Lambda x n) m -> Right $ subst1 x m n
   Ap1 (Limit x n) m -> exceptionallyEvaluateLimit x n m
   Ap1 (Diff x) m -> exceptionallyEvaluateDiff x m
+  Ap1 (Integral x) m -> exceptionallyEvaluateIntegral x m
   Ap1 Negate (Ap1 Negate n) -> Right n
   Ap1 Negate (ExpRatio n) -> Right $ ExpRatio (- n)
   Ap1 f x -> Ap1 f <$> exceptionallyEvaluate x
@@ -329,6 +330,25 @@ exceptionallyEvaluateLimit x n m = case m of
   _
     | subst1 x n m == m -> Right m
     | otherwise -> Ap1 (Limit x n) <$> exceptionallyEvaluate m
+
+-- | @exceptionallyEvaluateIntegral x m@ is the result of doing a single step of
+-- evaluation on @Ap1 (Integral x) m@.
+exceptionallyEvaluateIntegral :: String -> Expression -> Exceptional Expression
+exceptionallyEvaluateIntegral x m = case m of
+  n@(ExpRatio _) -> Right $ Ap2 Product n $ Variable x
+  Variable x2
+    | x2 == x -> exceptionallyEvaluateIntegral x $ Ap2 Exponent (Variable x) one
+      where one = ExpRatio 1
+  Ap2 Product c m
+    | subst1 x (ExpRatio 9001) c == c -> Right $
+        Ap2 Product c $ Ap1 (Integral x) m
+  Ap2 Exponent (Variable x2) e
+    | x2 /= x -> Right $ Ap1 (Integral x) m
+    | recursiveExceptionallyEvaluate e == Right (ExpRatio (-1)) -> Right $
+      Ap2 Logarithm (Variable x) Euler
+    | otherwise -> Right $ Ap2Quotient (Ap2 Exponent (Variable x) sucE) sucE
+      where sucE = Ap2 Sum (ExpRatio 1) e
+  _ -> Right $ Ap1 (Integral x) m
 
 -- | Basically, @commutativeEvaluate@ works pretty much like
 -- @exceptionallyEvaluate@ but can flip the arguments of commutative functions
