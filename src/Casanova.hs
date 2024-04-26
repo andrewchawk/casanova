@@ -201,12 +201,6 @@ exceptionalSequence x = case rights x of
 -- equivalent to the input but may be simpler.
 --
 -- @exceptionallyEvaluate@ performs a single step of the simplification process.
---
--- Also, @exceptionallyEvaluate@ /will/ convert to a standard form some
--- expressions.  This conversion facilitates processes like replacing with the
--- equivalent of "2 * a" the equivalent of "a + a".  This /replacement/
--- facilitates some computer algebra operations which are more obviously
--- desirable, e.g., the simplification of symbolic expressions.
 exceptionallyEvaluate :: Expression -> Exceptional Expression
 exceptionallyEvaluate o = case o of
   Variable _ -> Right o
@@ -252,15 +246,6 @@ exceptionallyEvaluate o = case o of
       -- multiplication expressions.
     | a2 == b2 && isRight a2 -> Right $ Ap2 Product (ExpRatio 2) a
     where [a2,b2] = map recursiveExceptionallyEvaluate [a,b]
-  -- These "Ap2 f" matches which refer to variables are really just useful
-  -- for converting expressions into the normal form.  No real computation
-  -- is happening here, so this part can be resonably skipped.  Basically,
-  -- constants precede variables, but variables precede function application
-  -- expressions.
-  Ap2 f fa@(Ap1 _ _) v@(Variable _) -> Right $ if isCommutative f then Ap2 f v fa else o
-  Ap2 f fa@(Ap2 _ _ _) v@(Variable _) -> Right $ if isCommutative f then Ap2 f v fa else o
-  Ap2 f v@(Variable _) n@(ExpRatio _) -> Right $ if isCommutative f then Ap2 f n v else o
-  Ap2 f v@(Variable _) n@Infinity -> Right $ if isCommutative f then Ap2 f n v else o
   Ap2 f a b -> Ap2 f <$> exceptionallyEvaluate a <*> exceptionallyEvaluate b
 
 -- | @exceptionallyEvaluateDiff x m@ is the result of doing a single step of
@@ -328,13 +313,36 @@ exceptionallyEvaluateLimit x n m = case m of
     | otherwise -> Ap1 (Limit x n) <$> exceptionallyEvaluate m
   ExpRatio b -> Right m
 
--- | @recursiveExceptionallyEvaluate@ is like 'exceptionallyEvaluate' but
+-- | Basically, @commutativeEvaluate@ works pretty much like
+-- @exceptionallyEvaluate@ but can flip the arguments of commutative functions
+-- when such flipping actually makes a difference /and/ is necessary for further
+-- processing by Casanova.
+--
+-- The flipping of arguments is considered to be an evaluation step, and, like
+-- 'exceptionallyEvaluate', @commutivateEvaluate@ performs only a single
+-- evaluation step.
+--
+-- The format of the output is the format of the output of
+-- 'exceptionallyEvaluate'.
+commutativeEvaluate :: Expression -> Exceptional Expression
+commutativeEvaluate o@(Ap2 f x y) = maybeRewrite =<< exceptionallyEvaluate o
+  where
+  eflip = exceptionallyEvaluate $ Ap2 f y x
+  maybeRewrite :: Expression -> Exceptional Expression
+  maybeRewrite evald
+    | evald /= o = Right evald
+    | not (isCommutative f) = Right evald
+    | eflip == Right (Ap2 f y x) = Right evald
+    | otherwise = Right $ Ap2 f y x
+commutativeEvaluate o = exceptionallyEvaluate o
+
+-- | @recursiveExceptionallyEvaluate@ is like 'commutativeEvaluate' but
 -- performs multiple evaluation steps.  The output contains a simplification
 -- or a description of the first error which is encountered.
 recursiveExceptionallyEvaluate :: Expression -> Exceptional Expression
 recursiveExceptionallyEvaluate x = either Left recurse e
   where
-  e = exceptionallyEvaluate x
+  e = commutativeEvaluate x
   recurse x2 = if x2 == x then Right x else recursiveExceptionallyEvaluate x2
 
 -- | @isCommutative x@ is 'True' if and only if @x@ represents a commutative

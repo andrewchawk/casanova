@@ -42,7 +42,6 @@ main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
     testsForLimit ++
     testsForLambda ++
     testsForExpRatio ++
-    testsForNormalForm ++
      [("Dividing by zero zero",
       (\z -> Ap2Quotient z z) $ ExpRatio 0,
       Nothing),
@@ -136,11 +135,3 @@ testsForExpRatio =
     Ap2 Exponent (ExpRatio 2) $ ExpRatio (- 5),
     Just $ ExpRatio $ 1 % (2 ^ 5))]
   where (a,b) = (2407620 % 45672, 28467 % 329057)
-
--- | This value is a list of test cases which mostly pertain to the process of
--- converting to normal form.
-testsForNormalForm :: [TestCase]
-testsForNormalForm =
-  [("Normal form conversion of x * 2/1",
-    Ap2 Product (Variable "x") (ExpRatio 2),
-    Just $ Ap2 Product (ExpRatio 2) (Variable "x"))]
