@@ -219,8 +219,9 @@ exceptionallyEvaluate o = case o of
     | r b == r e && isRight (r b) -> Right x
     where r = recursiveExceptionallyEvaluate
   Ap2 Exponent b (ExpRatio e)
-    | isZero b == Just True && e < 0 -> Left $
-      "I tried to compute " ++ input ++ ", but raising 0 to a negative " ++
+    | b == Infinity -> Right $ ExpRatio 0
+    | isZero b == Just True && e <= 0 -> Left $
+      "I tried to compute " ++ input ++ ", but raising 0 to a non-positive " ++
       "exponent is undefined."
       where input = "(" ++ show b ++ ") ^ (" ++ show (ExpRatio e) ++ ")"
   Ap2 Exponent (ExpRatio x) (ExpRatio y)
@@ -316,11 +317,18 @@ exceptionallyEvaluateLimit x n m = case m of
   Variable x2 -> Right $ if x == x2 then n else Ap1 (Limit x n) m
   Ap2Quotient m1 m2 -> exceptionalSequence $ map recursiveExceptionallyEvaluate
     [Ap2Quotient (Ap1 (Limit x n) m1) (Ap1 (Limit x n) m2),
+     Ap1 (Limit x n) $ Ap2Quotient
+       (Ap1 (Diff x) m1)
+       (Ap1 (Diff x) m2),
      subst1 x n m]
+  Ap2 Product m1 m2 -> Right $ Ap2 Product (l m1) (l m2)
+    where l = Ap1 $ Limit x n
+  Ap2 Sum m1 m2 -> Right $ Ap2 Sum (l m1) (l m2)
+    where l = Ap1 $ Limit x n
+  ExpRatio b -> Right m
   _
     | subst1 x n m == m -> Right m
     | otherwise -> Ap1 (Limit x n) <$> exceptionallyEvaluate m
-  ExpRatio b -> Right m
 
 -- | Basically, @commutativeEvaluate@ works pretty much like
 -- @exceptionallyEvaluate@ but can flip the arguments of commutative functions
