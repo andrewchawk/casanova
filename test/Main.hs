@@ -176,9 +176,10 @@ testsForIntegral :: [TestCase]
 testsForIntegral =
   [("integrate(x,x)",
     Ap1 (Integral "x") $ Variable "x",
-    Just $ Ap2Quotient
-      (Ap2 Exponent (Variable "x") $ ExpRatio 2)
-      (ExpRatio 2)),
+    eitherToMaybe $ recursiveExceptionallyEvaluate $
+      Ap2Quotient
+        (Ap2 Exponent (Variable "x") $ ExpRatio 2)
+        (ExpRatio 2)),
    ("integrate(3,x)",
     Ap1 (Integral "x") $ ExpRatio 3,
     Just $ Ap2 Product (ExpRatio 3) $ Variable "x"),
@@ -189,6 +190,9 @@ testsForIntegral =
     Just $ Ap2 Sum (Ap2 Exponent (Variable "x") (ExpRatio 3)) $ Ap2 Sum
       (Ap2Quotient (Ap2 Exponent (Variable "x") $ ExpRatio 2) (ExpRatio 2)) $
         Ap2 Product (ExpRatio 2) $ Variable "x")]
+  where
+  eitherToMaybe (Right x) = Just x
+  eitherToMaybe (Left _) = Nothing
 
 -- | These tests mostly pertain to exponentiation.
 testsForExponents :: [TestCase]
