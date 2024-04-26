@@ -7,26 +7,24 @@ import Data.Either
 import Data.Ratio
 
 -- | If @x@ is recursively evaluated to @Right y@, then
--- @checkExpressionEquality s x (Just y)@ is 'Nothing'.  If @x@ is recursively
--- evaluated to some 'Left' value, then @checkExpressionEquality s x Nothing@
--- is 'Nothing'.  Otherwise, @checkExpressionEquality s x y@ is @'Just' s@.
-checkExpEquality :: String -> Expression -> Maybe Expression -> Maybe String
-checkExpEquality s x (Just y) = if e == Right y then Nothing else Just s2
+-- @checkExpressionEquality x (Just y)@ is 'Nothing'.  If @x@ is recursively
+-- evaluated to some 'Left' value, then @checkExpressionEquality x Nothing@
+-- is 'Nothing'.  Otherwise, @checkExpressionEquality s x y@ is
+-- @'Just' $ recursivelyEvaluate x@.
+checkExpEquality :: Expression
+                 -> Maybe Expression
+                 -> Maybe (Exceptional Expression)
+checkExpEquality x (Just y) = if e == Right y then Nothing else Just e
   where
   e = recursiveExceptionallyEvaluate x
-  s2 = s ++ " (" ++ expected ++ "; " ++ actual ++ ")"
-    where
-    expected = "Expected result: " ++ show (Right y :: Exceptional Expression)
-    actual = "Actual result: " ++ show e
-checkExpEquality s x Nothing = if isLeft e then Nothing else Just s2
+checkExpEquality x Nothing = if isLeft e then Nothing else Just e
   where
   e = recursiveExceptionallyEvaluate x
-  s2 = s ++ " (Expecting a Left value but got " ++ show e ++ ")"
 
 -- | If all values in @x@ are 'Nothing', then @sequenceEqualityErrors x@ is also
 -- 'Nothing'.  Otherwise, @sequenceEqualityErrors x@ is a list of all 'Just'
 -- elements of @x@.
-sequenceEqualityErrors :: [Maybe String] -> Maybe [String]
+sequenceEqualityErrors :: [Maybe a] -> Maybe [a]
 sequenceEqualityErrors x = case catMaybes x of
   [] -> Nothing
   x@(_ : _) -> Just x
@@ -35,8 +33,13 @@ main :: IO ()
 main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
   where
   printFailMsg t = putStrLn "The following test cases failed:\n" >> mapM_ printError t
-    where printError = putStrLn . ("- " ++)
-  chkEquality (a,b,c) = checkExpEquality a b c
+    where
+    printError (a,b,c) = putStrLn $ unlines $ ("- " ++ a) : map ("  - " ++) bulleted
+      where
+      bulleted = [expected, actual]
+      expected = "Expected value: " ++ show b
+      actual = "Actual value: " ++ show c
+  chkEquality (a,b,c) = (\d -> (a,c,d)) <$> checkExpEquality b c
   equalChkResults = sequenceEqualityErrors $ map chkEquality $
     testsForDiff ++
     testsForFlip ++
