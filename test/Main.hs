@@ -119,6 +119,15 @@ testsForLimit =
         (Ap2 Sum (Ap2 Exponent (Variable "a") $ ExpRatio 2) (Variable "a"))
         (Variable "a"),
     Just $ ExpRatio 1),
+   ("Limit of 1/x as x approaches infinity",
+    Ap1 (Limit "x" Infinity) $ Ap2Quotient (ExpRatio 1) $ Variable "x",
+    Just $ ExpRatio 0),
+   ("Limit of 1/x as x approaches zero",
+    Ap1 (Limit "x" $ ExpRatio 0) $ Ap2Quotient (ExpRatio 1) $ Variable "x",
+    Just Infinity),
+   ("Limit of x/x as x approaches zero",
+    Ap1 (Limit "x" $ ExpRatio 0) $ (\x -> Ap2Quotient x x) $ Variable "x",
+    Just $ ExpRatio 1),
    ("Limit of x / (x+1)",
     Ap1 (Limit "x" Infinity) $
       Ap2Quotient (Variable "x")
