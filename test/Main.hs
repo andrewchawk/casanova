@@ -183,4 +183,4 @@ testsForExponents =
     Nothing),
    ("5^(-2)",
     Ap2 Exponent (ExpRatio 5) $ ExpRatio (-2),
-    Just $ ExpRatio $ 1 % (5 ^ (-2)))]
+    Just $ ExpRatio $ 1 % (5 ^ 2))]
