@@ -239,6 +239,8 @@ exceptionallyEvaluate o = case o of
   Ap2 Logarithm (Ap2 Exponent b e) n -> Right $ Ap2 Product e $ Ap2 Logarithm b n
   Ap2 Product (Ap1 Negate a) b -> Right $ Ap1 Negate $ Ap2 Product a b
   Ap2 Product (ExpRatio a) (ExpRatio b) -> Right $ ExpRatio $ a * b
+  Ap2 Product ra@(ExpRatio a) (Ap2 Product rb@(ExpRatio b) c) -> Right $
+    Ap2 Product (Ap2 Product ra rb) c
   Ap2 Product a b
     | Infinity `elem` [a,b] -> Right o
     | isOne a == Just True -> Right b
