@@ -39,9 +39,11 @@ main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
   chkEquality (a,b,c) = checkExpEquality a b c
   equalChkResults = sequenceEqualityErrors $ map chkEquality $
     testsForDiff ++
+    testsForFlip ++
     testsForLimit ++
     testsForLambda ++
     testsForExpRatio ++
+    testsForExponents ++
      [("Dividing by zero zero",
       (\z -> Ap2Quotient z z) $ ExpRatio 0,
       Nothing),
@@ -55,6 +57,10 @@ main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
      ("Adding infinity and negative infinity",
       Ap2 Sum Infinity $ Ap1 Negate Infinity,
       Just $ ExpRatio 0),
+     ("log(a^b,c)",
+      Ap2 Logarithm (Ap2 Exponent (Variable "a") (Variable "b")) (Variable "c"),
+      Just $ Ap2 Product (Variable "b") $
+        Ap2 Logarithm (Variable "a") (Variable "c")),
      ("g ^ log(e,g)",
       Ap2 Exponent (Variable "g") $ Ap2 Logarithm (Variable "e") (Variable "g"),
       Just $ Variable "e")]
@@ -63,12 +69,28 @@ main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
 -- therefore, are test cases.
 type TestCase = (String, Expression, Maybe Expression)
 
+-- | These tests pertain largely to 'Flip'.
+testsForFlip :: [TestCase]
+testsForFlip =
+  [("Flipped addition with ExpRatio",
+    Ap2 (Flip Sum) (ExpRatio 5) (ExpRatio 10),
+    Just $ ExpRatio 15),
+   ("Flipped multiplication with ExpRatio",
+    Ap2 (Flip Product) (ExpRatio 5) (ExpRatio 10),
+    Just $ ExpRatio 50)]
+
 -- | This value is a list of test cases which mostly pertain to 'Diff'.
 testsForDiff :: [TestCase]
 testsForDiff =
   [("Derivative of the deriviative of sin x",
     Ap1 (Diff "x") $ Ap1 (Diff "x") $ Ap1 Sin $ Variable "x",
     Just $ Ap1 Negate $ Ap1 Sin $ Variable "x"),
+   ("Derivative of x * x",
+    Ap1 (Diff "x") $ Ap2 Product (Variable "x") $ Variable "x",
+    Just $ Ap2 Product (ExpRatio 2) $ Variable "x"),
+   ("Derivative of x^1",
+    Ap1 (Diff "x") $ Ap2 Exponent (Variable "x") $ ExpRatio 1,
+    Just $ ExpRatio 1),
    ("Derivative of the sine of an unrelated variable",
     Ap1 (Diff "z") $ Ap1 Sin $ Variable "x",
     Just $ Ap1 (Diff "z") $ Ap1 Sin $ Variable "x")]
@@ -79,6 +101,9 @@ testsForLimit =
   [("Limit of infinity as x approaches infinity",
     Ap1 (Limit "x" Infinity) Infinity,
     Just Infinity),
+   ("Limit of 5 as x aproaches infinity",
+    Ap1 (Limit "x" Infinity) $ ExpRatio 5,
+    Just $ ExpRatio 5),
    ("Limit of x as x approaches n",
     Ap1 (Limit "x" $ Variable "n") (Variable "x"),
     Just $ Variable "n"),
@@ -135,3 +160,18 @@ testsForExpRatio =
     Ap2 Exponent (ExpRatio 2) $ ExpRatio (- 5),
     Just $ ExpRatio $ 1 % (2 ^ 5))]
   where (a,b) = (2407620 % 45672, 28467 % 329057)
+
+-- | These tests mostly pertain to exponentiation.
+testsForExponents :: [TestCase]
+testsForExponents =
+  [("n^1",
+    Ap2 Product (Variable "n") $ ExpRatio 1,
+    Just $ Variable "n"),
+   (let exp = Ap2 Exponent (Variable "n") $ Variable "n" in
+    ("n^n", exp, Just exp)),
+   ("0^0",
+    Ap2 Exponent (ExpRatio 0) $ ExpRatio 0,
+    Nothing),
+   ("5^(-2)",
+    Ap2 Exponent (ExpRatio 5) $ ExpRatio (-2),
+    Just $ ExpRatio $ 1 % (5 ^ (-2)))]

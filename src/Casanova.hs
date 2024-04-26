@@ -233,10 +233,15 @@ exceptionallyEvaluate o = case o of
     | isZero e == Just True && isZero b == Just False -> Right $ ExpRatio 1
     | isOne b == Just True -> Right $ ExpRatio 1
     | isZero b == Just True && isZero e == Just False -> Right $ ExpRatio 0
+  Ap2 Logarithm (Ap2 Exponent b e) n -> Right $ Ap2 Product e $ Ap2 Logarithm b n
   Ap2 Product (Ap1 Negate a) b -> Right $ Ap1 Negate $ Ap2 Product a b
   Ap2 Product (ExpRatio a) (ExpRatio b) -> Right $ ExpRatio $ a * b
   Ap2 Product a b
     | Infinity `elem` [a,b] -> Right o
+    | isOne a == Just True -> Right b
+      -- The following isRight check ensures that 0 * 0^(-1) is not evaluated
+      -- as 0.
+    | isZero a == Just True && isRight (recursiveExceptionallyEvaluate b) -> Right $ ExpRatio 0
   Ap2 Sum a (Ap1 Negate b)
     | e a == e b -> Right $ ExpRatio 0
     where e = recursiveExceptionallyEvaluate
@@ -257,6 +262,10 @@ exceptionallyEvaluateDiff x m
     Variable x2 -> Right $ if x2 == x then ExpRatio 1 else Ap1 (Diff x) m
     Infinity -> Right $ ExpRatio 0
     ExpRatio _ -> Right $ ExpRatio 0
+    Ap2 Sum a b -> Right $ Ap2 Sum (d a) $ d b
+      where d = Ap1 $ Diff x
+    Ap2 Exponent (Variable x2) (ExpRatio n)
+      | x2 == x -> Right $ Ap2 Product (ExpRatio n) $ Ap2 Exponent (Variable x) $ ExpRatio $ n - 1
     Ap2 Exponent Euler (Variable x2)
       | x2 == x -> Right m
     Ap2 Product m1 m2 ->
