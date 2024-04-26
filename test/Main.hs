@@ -43,6 +43,7 @@ main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
     testsForLimit ++
     testsForLambda ++
     testsForExpRatio ++
+    testsForIntegral ++
     testsForExponents ++
      [("Dividing by zero zero",
       (\z -> Ap2Quotient z z) $ ExpRatio 0,
@@ -169,6 +170,25 @@ testsForExpRatio =
     Ap2 Exponent (ExpRatio 2) $ ExpRatio (- 5),
     Just $ ExpRatio $ 1 % (2 ^ 5))]
   where (a,b) = (2407620 % 45672, 28467 % 329057)
+
+-- | These tests mostly pertain to integration.
+testsForIntegral :: [TestCase]
+testsForIntegral =
+  [("integrate(x,x)",
+    Ap1 (Integral "x") $ Variable "x",
+    Just $ Ap2Quotient
+      (Ap2 Exponent (Variable "x") $ ExpRatio 2)
+      (ExpRatio 2)),
+   ("integrate(3,x)",
+    Ap1 (Integral "x") $ ExpRatio 3,
+    Just $ Ap2 Product (ExpRatio 3) $ Variable "x"),
+   ("integrate(3*x^2 + x + 2, x)",
+    Ap1 (Integral "x") $ Ap2 Sum
+      (Ap2 Product (ExpRatio 3) $ Ap2 Exponent (Variable "x") (ExpRatio 2))
+      (Ap2 Sum (Variable "x") $ ExpRatio 2),
+    Just $ Ap2 Sum (Ap2 Exponent (Variable "x") (ExpRatio 3)) $ Ap2 Sum
+      (Ap2Quotient (Ap2 Exponent (Variable "x") $ ExpRatio 2) (ExpRatio 2)) $
+        Ap2 Product (ExpRatio 2) $ Variable "x")]
 
 -- | These tests mostly pertain to exponentiation.
 testsForExponents :: [TestCase]
