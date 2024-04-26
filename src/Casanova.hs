@@ -4,6 +4,7 @@ module Casanova where
 
 import Data.Ratio
 import Data.Either
+import Data.Maybe
 
 -- | This datatype facilitates error handling.  @Left@ values indicate -- and
 -- contain useful descriptions of -- errors which are encountered when
@@ -364,15 +365,25 @@ exceptionallyEvaluateIntegral x m = case m of
 -- The format of the output is the format of the output of
 -- 'exceptionallyEvaluate'.
 commutativeEvaluate :: Expression -> Exceptional Expression
-commutativeEvaluate o@(Ap2 f x y) = maybeRewrite =<< exceptionallyEvaluate o
-  where
-  eflip = exceptionallyEvaluate $ Ap2 f y x
-  maybeRewrite :: Expression -> Exceptional Expression
-  maybeRewrite evald
-    | evald /= o = Right evald
-    | not (isCommutative f) = Right evald
-    | eflip == Right (Ap2 f y x) = Right evald
-    | otherwise = Right $ Ap2 f y x
+commutativeEvaluate o@(Ap2 f x y)
+    | not (isCommutative f) || different o = exceptionallyEvaluate o
+    | otherwise = maybe (Right o) Right $ listToMaybe (filter different commuted)
+      where
+      different :: Expression -> Bool
+      different a = exceptionallyEvaluate a /= Right a
+      commuted :: [Expression]
+      commuted = [Ap2 f y x] ++
+                 (concatMap
+                   (\x2 -> [Ap2 f x2 y, Ap2 f y x2])
+                   (maybeFlip y)) ++
+                 (concatMap
+                   (\y2 -> [Ap2 f x y2, Ap2 f y2 x])
+                   (maybeFlip y))
+        where
+        maybeFlip :: Expression -> [Expression]
+        maybeFlip x = case x of
+          Ap2 f2 x2 y2 -> if isCommutative f2 then [Ap2 f2 y2 x2] else []
+          _ -> []
 commutativeEvaluate o = exceptionallyEvaluate o
 
 -- | @recursiveExceptionallyEvaluate@ is like 'commutativeEvaluate' but
