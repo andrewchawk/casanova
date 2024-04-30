@@ -232,7 +232,7 @@ exceptionallyEvaluate o = case o of
     | denominator y == 1 && numerator y > 1 -> Right $ ExpRatio $ iterate2 (* x) x (numerator y - 1)
     | denominator y == 1 && numerator y < 1 -> Right $ ExpRatio $ iterate2 (/ x) x (abs (numerator y) + 1)
     | denominator x == 1 &&
-      x >= 0 &&
+      x /= 0 &&
       denominator y > 1 &&
       numerator y == 1 &&
       isJust sufficientN ->
@@ -242,8 +242,11 @@ exceptionallyEvaluate o = case o of
       -- In the guard, we check that sufficientN is actually a Just value, so
       -- the following use of fromJust is fine.
       sufficientN' = fromJust sufficientN
-      newRadicand = ExpRatio $ (%1) $ product $ withoutNCases factorList sufficientN' $ denominator y
-      factorList = factors $ numerator x
+      newRadicand = ExpRatio $ (%1) $ product $ sign : prodFactors
+        where
+        sign = signum $ numerator x
+        prodFactors = withoutNCases factorList sufficientN' $ denominator y
+      factorList = factors $ abs $ numerator x
       sufficientN = listToMaybe $
         filter (\n -> denominator y <= fromIntegral (length $ filter (== n) factorList))
                factorList
