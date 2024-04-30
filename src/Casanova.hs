@@ -377,7 +377,7 @@ commutativeEvaluate o@(Ap2 f x y)
       commuted = [Ap2 f y x] ++
                  (concatMap
                    (\x2 -> [Ap2 f x2 y, Ap2 f y x2])
-                   (maybeFlip y)) ++
+                   (maybeFlip x)) ++
                  (concatMap
                    (\y2 -> [Ap2 f x y2, Ap2 f y2 x])
                    (maybeFlip y))
