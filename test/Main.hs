@@ -48,17 +48,17 @@ main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
     testsForExpRatio ++
     testsForIntegral ++
     testsForExponents ++
-     [("Dividing by zero zero",
+     [("0/0",
       (\z -> Ap2Quotient z z) $ ExpRatio 0,
       Nothing),
-     ("Square of square root of -1",
+     ("(^2) $ (-1)^(1/2)",
       let i = Ap2 Exponent (ExpRatio (-1)) $ ExpRatio $ 1 % 2 in
       Ap2 Exponent i $ ExpRatio 2,
       Just $ ExpRatio (-1)),
      ("Derivative of e^x",
       Ap1 (Diff "x") $ Ap2 Exponent Euler $ Variable "x",
       Just $ Ap2 Exponent Euler $ Variable "x"),
-     ("Adding infinity and negative infinity",
+     ("infinity - infinity",
       Ap2 Sum Infinity $ Ap1 Negate Infinity,
       Just $ ExpRatio 0),
      ("2 * (a * 1/2)",
@@ -117,7 +117,7 @@ testsForLimit =
    ("Limit of x as x approaches n",
     Ap1 (Limit "x" $ Variable "n") (Variable "x"),
     Just $ Variable "n"),
-   ("Using a limit to calculate e",
+   ("Using a limit to calculate Euler's number",
     Ap1 (Limit "x" Infinity) $
       Ap2 (Flip Exponent)
         (Variable "x")
@@ -138,6 +138,10 @@ testsForLimit =
    ("Limit of x/x as x approaches zero",
     Ap1 (Limit "x" $ ExpRatio 0) $ (\x -> Ap2Quotient x x) $ Variable "x",
     Just $ ExpRatio 1),
+   ("Limit of (1+2) / x as x approaches 0",
+    Ap1 (Limit "x" $ ExpRatio 0) $
+      Ap2Quotient (Ap2 Sum (ExpRatio 1) (ExpRatio 2)) (Variable "x"),
+    Just Infinity),
    ("Limit of x / (x+1)",
     Ap1 (Limit "x" Infinity) $
       Ap2Quotient (Variable "x")
@@ -210,8 +214,17 @@ testsForIntegral =
 testsForExponents :: [TestCase]
 testsForExponents =
   [("n^1",
-    Ap2 Product (Variable "n") $ ExpRatio 1,
+    Ap2 Exponent (Variable "n") $ ExpRatio 1,
     Just $ Variable "n"),
+   ("infinity^0",
+    Ap2 Exponent Infinity $ ExpRatio 0,
+    Just $ ExpRatio 1),
+   ("4^(1/2)",
+    Ap2 Exponent (ExpRatio 4) $ ExpRatio $ 1 % 2,
+    Just $ ExpRatio 2),
+   ("(-4)^(1/2)",
+    Ap2 Exponent (ExpRatio (-4)) $ ExpRatio $ 1 % 2,
+    Just $ Ap2 Product (ExpRatio 2) $ Ap2 Exponent (ExpRatio (-1)) $ ExpRatio $ 1 % 2),
    (let exp = Ap2 Exponent (Variable "n") $ Variable "n" in
     ("n^n", exp, Just exp)),
    ("0^0",
