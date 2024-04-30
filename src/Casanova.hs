@@ -231,6 +231,22 @@ exceptionallyEvaluate o = case o of
     -- within @iterate2@.
     | denominator y == 1 && numerator y > 1 -> Right $ ExpRatio $ iterate2 (* x) x (numerator y - 1)
     | denominator y == 1 && numerator y < 1 -> Right $ ExpRatio $ iterate2 (/ x) x (abs (numerator y) + 1)
+    | denominator x == 1 &&
+      x >= 0 &&
+      denominator y > 1 &&
+      numerator y == 1 &&
+      isJust sufficientN ->
+      Right $ Ap2 Product (ExpRatio $ sufficientN' % 1)
+                          (Ap2 Exponent newRadicand $ ExpRatio y)
+      where
+      -- In the guard, we check that sufficientN is actually a Just value, so
+      -- the following use of fromJust is fine.
+      sufficientN' = fromJust sufficientN
+      newRadicand = ExpRatio $ (%1) $ product $ withoutNCases factorList sufficientN' $ denominator y
+      factorList = factors $ numerator x
+      sufficientN = listToMaybe $
+        filter (\n -> denominator y <= fromIntegral (length $ filter (== n) factorList))
+               factorList
   Ap2 Exponent b e
     | isOne e == Just True -> Right b
     | isZero e == Just True && isZero b == Just False -> Right $ ExpRatio 1
@@ -403,6 +419,23 @@ isCommutative :: FunctionM2 -> Bool
 isCommutative Sum = True
 isCommutative Product = True
 isCommutative _ = False
+
+-- | @factors n@ is a list of all prime factors of @n@, barring 1 and @n@.  The
+-- input must be nonnegative.
+factors :: Integer -> [Integer]
+factors n = maybe [n] (\x -> concat $ map factors [x, n `div` x]) $ divisors n
+  where divisors n = listToMaybe $ filter (\x -> n `mod` x == 0) [2..n-1]
+
+-- | @withoutNCases x e n@ is like @x@ but lacks at most @max 0 n@ elements
+-- which equal @e@.
+withoutNCases :: Eq a => [a] -> a -> Integer -> [a];
+withoutNCases list element permissibleDeletions
+  | permissibleDeletions <= 0 = list
+  | otherwise = (case list of
+    (x : xs) -> if x == element then
+                  withoutNCases xs element (permissibleDeletions - 1) else
+                  x : withoutNCases xs element permissibleDeletions
+    _ -> list)
 
 -- | The standard Haskell numeric operators can be used instead of Casanova's
 -- ever-verbose internal representations.
