@@ -7,17 +7,20 @@ import Data.Either
 import Data.Ratio
 
 -- | If Casanova determines that @x@ is equivalent to @y@, then
--- @checkExpressionEquality x (Just y)@ is 'Nothing'.  If @x@ is recursively
--- evaluated to some 'Left' value, then @checkExpressionEquality x Nothing@
--- is 'Nothing'.  Otherwise, @checkExpressionEquality s x y@ is
--- @'Just' $ recursivelyEvaluate x@.
+-- @checkExpressionEquality x (Just y) True@ is 'Nothing'.  If Casanova
+-- determines that @x@ is /not/ equivalent to @y@, then
+-- @checkExpressionEquality x (Just y) False@ is 'Nothing'.  If @x@ is
+-- recursively evaluated to some 'Left' value, then
+-- @checkExpressionEquality x Nothing c@ is 'Nothing'.  Otherwise,
+-- @checkExpressionEquality x y c@ is @'Just' $ recursivelyEvaluate x@.
 checkExpEquality :: Expression
                  -> Maybe Expression
+                 -> Bool
                  -> Maybe (Exceptional Expression)
-checkExpEquality x (Just y) = if x `definitelyEquals` y == Right True then
+checkExpEquality x (Just y) c = if x `definitelyEquals` y == Right c then
                    Nothing else
                    Just $ exceptionallyEvaluate x
-checkExpEquality x Nothing = if isLeft e then Nothing else Just e
+checkExpEquality x Nothing _ = if isLeft e then Nothing else Just e
   where
   e = recursiveExceptionallyEvaluate x
 
@@ -39,8 +42,8 @@ main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
       bulleted = [expected, actual]
       expected = "Expected value: " ++ show b
       actual = "Actual value: " ++ show c
-  chkEquality (a,b,c) = (\d -> (a,c,d)) <$> checkExpEquality b c
-  equalChkResults = sequenceEqualityErrors $ map chkEquality $
+  chkEquality (a,b,c,d) = (\d -> (a,c,d)) <$> checkExpEquality b c d
+  equalChkResults = sequenceEqualityErrors $ map chkEquality $ map (\(a,b,c) -> (a,b,c,True)) $
     testsForDiff ++
     testsForFlip ++
     testsForLimit ++
