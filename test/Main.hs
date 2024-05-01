@@ -6,7 +6,7 @@ import Data.Maybe
 import Data.Either
 import Data.Ratio
 
--- | If @x@ is recursively evaluated to @Right y@, then
+-- | If Casanova determines that @x@ is equivalent to @y@, then
 -- @checkExpressionEquality x (Just y)@ is 'Nothing'.  If @x@ is recursively
 -- evaluated to some 'Left' value, then @checkExpressionEquality x Nothing@
 -- is 'Nothing'.  Otherwise, @checkExpressionEquality s x y@ is
@@ -14,9 +14,9 @@ import Data.Ratio
 checkExpEquality :: Expression
                  -> Maybe Expression
                  -> Maybe (Exceptional Expression)
-checkExpEquality x (Just y) = if e == Right y then Nothing else Just e
-  where
-  e = recursiveExceptionallyEvaluate x
+checkExpEquality x (Just y) = if x `definitelyEquals` y == Right True then
+                   Nothing else
+                   Just $ exceptionallyEvaluate x
 checkExpEquality x Nothing = if isLeft e then Nothing else Just e
   where
   e = recursiveExceptionallyEvaluate x
