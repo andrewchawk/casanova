@@ -43,7 +43,7 @@ main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
       expected = "Expected value: " ++ show b
       actual = "Actual value: " ++ show c
   chkEquality (a,b,c,d) = (\d -> (a,c,d)) <$> checkExpEquality b c d
-  equalChkResults = sequenceEqualityErrors $ map chkEquality $ map (\(a,b,c) -> (a,b,c,True)) $
+  equalChkResults = sequenceEqualityErrors $ map chkEquality $
     testsForDiff ++
     testsForFlip ++
     testsForLimit ++
@@ -51,7 +51,7 @@ main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
     testsForExpRatio ++
     testsForIntegral ++
     testsForExponents ++
-     [("0/0",
+     map (\(a,b,c) -> (a,b,c,True)) [("0/0",
       (\z -> Ap2Quotient z z) $ ExpRatio 0,
       Nothing),
      ("(^2) $ (-1)^(1/2)",
@@ -80,12 +80,12 @@ main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
 
 -- | Values of this type can be used as input for 'checkExpEquality' and,
 -- therefore, are test cases.
-type TestCase = (String, Expression, Maybe Expression)
+type TestCase = (String, Expression, Maybe Expression, Bool)
 
 -- | These tests pertain largely to 'Flip'.
 testsForFlip :: [TestCase]
 testsForFlip =
-  [("Flipped addition with ExpRatio",
+  map (\(a,b,c) -> (a,b,c,True)) [("Flipped addition with ExpRatio",
     Ap2 (Flip Sum) (ExpRatio 5) (ExpRatio 10),
     Just $ ExpRatio 15),
    ("Flipped multiplication with ExpRatio",
@@ -95,7 +95,7 @@ testsForFlip =
 -- | This value is a list of test cases which mostly pertain to 'Diff'.
 testsForDiff :: [TestCase]
 testsForDiff =
-  [("Derivative of the deriviative of sin x",
+  map (\(a,b,c) -> (a,b,c,True)) [("Derivative of the deriviative of sin x",
     Ap1 (Diff "x") $ Ap1 (Diff "x") $ Ap1 Sin $ Variable "x",
     Just $ Ap1 Negate $ Ap1 Sin $ Variable "x"),
    ("Derivative of x * x",
@@ -111,7 +111,7 @@ testsForDiff =
 -- | This value is a list of test cases which mostly pertain to 'Limit'.
 testsForLimit :: [TestCase]
 testsForLimit =
-  [("Limit of infinity as x approaches infinity",
+  map (\(a,b,c) -> (a,b,c,True)) [("Limit of infinity as x approaches infinity",
     Ap1 (Limit "x" Infinity) Infinity,
     Just Infinity),
    ("Limit of 5 as x aproaches infinity",
@@ -154,7 +154,7 @@ testsForLimit =
 -- | This value is a list of test cases which mostly pertain to 'Lambda'.
 testsForLambda :: [TestCase]
 testsForLambda =
-  [("Simple lambda with unused variable",
+  map (\(a,b,c) -> (a,b,c,True)) [("Simple lambda with unused variable",
     Ap1 (Lambda "x" Infinity) $ Ap1 Negate Infinity,
     Just Infinity),
    ("Potentially tricky lambda substitution",
@@ -167,7 +167,7 @@ testsForLambda =
 -- | This value is a list of test cases which mostly pertain to 'ExpRatio'.
 testsForExpRatio :: [TestCase]
 testsForExpRatio =
-  [("Basic ExpRatio addition",
+  map (\(a,b,c) -> (a,b,c,True)) [("Basic ExpRatio addition",
     Ap2 Sum (ExpRatio a) (ExpRatio b),
     Just $ ExpRatio $ a + b),
    ("Basic ExpRatio subtraction",
@@ -190,7 +190,7 @@ testsForExpRatio =
 -- | These tests mostly pertain to integration.
 testsForIntegral :: [TestCase]
 testsForIntegral =
-  [("integrate(x,x)",
+  map (\(a,b,c) -> (a,b,c,True)) [("integrate(x,x)",
     Ap1 (Integral "x") $ Variable "x",
     eitherToMaybe $ recursiveExceptionallyEvaluate $
       Ap2Quotient
@@ -216,7 +216,7 @@ testsForIntegral =
 -- | These tests mostly pertain to exponentiation.
 testsForExponents :: [TestCase]
 testsForExponents =
-  [("n^1",
+  map (\(a,b,c) -> (a,b,c,True)) [("n^1",
     Ap2 Exponent (Variable "n") $ ExpRatio 1,
     Just $ Variable "n"),
    ("infinity^0",
