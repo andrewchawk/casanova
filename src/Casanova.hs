@@ -419,10 +419,7 @@ commutativeEvaluate o = exceptionallyEvaluate o
 -- performs multiple evaluation steps.  The output contains a simplification
 -- or a description of the first error which is encountered.
 recursiveExceptionallyEvaluate :: Expression -> Exceptional Expression
-recursiveExceptionallyEvaluate x = either Left recurse e
-  where
-  e = commutativeEvaluate x
-  recurse x2 = if x2 == x then Right x else recursiveExceptionallyEvaluate x2
+recursiveExceptionallyEvaluate = last . traceEvaluate
 
 -- | For all appropriate values @n@, @traceEvaluate !! (n + 1)@ is the result of
 -- performing on @traceEvaluate e !! n@ single evaluation step.  The first
