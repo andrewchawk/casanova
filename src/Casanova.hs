@@ -222,7 +222,6 @@ exceptionallyEvaluate o = case o of
     | r b == r e && isRight (r b) -> Right x
     where r = recursiveExceptionallyEvaluate
   Ap2 Exponent b (ExpRatio e)
-    | b == Infinity -> Right $ ExpRatio 0
     | isZero b == Just True && e <= 0 -> Left $
       "I tried to compute " ++ input ++ ", but raising 0 to a non-positive " ++
       "exponent is undefined."
@@ -261,12 +260,20 @@ exceptionallyEvaluate o = case o of
   Ap2 Product (ExpRatio a) (ExpRatio b) -> Right $ ExpRatio $ a * b
   Ap2 Product ra@(ExpRatio a) (Ap2 Product rb@(ExpRatio b) c) -> Right $
     Ap2 Product (Ap2 Product ra rb) c
+  Ap2 Product a (Ap2 Exponent b e)
+    | a == b -> Right $ Ap2 Exponent b $ Ap2 Sum e $ ExpRatio 1
+  Ap2 Product (Ap2 Exponent b1 e1) (Ap2 Exponent b2 e2)
+    | b1 == b2 -> Right $ Ap2 Exponent b1 $ Ap2 Sum e1 e2
+  Ap2 Product a (Ap2 Product b c)
+    | a == b && b /= c -> Right $ Ap2 Product (Ap2 Product a b) c
   Ap2 Product a b
     | Infinity `elem` [a,b] -> Right o
     | isOne a == Just True -> Right b
       -- The following isRight check ensures that 0 * 0^(-1) is not evaluated
       -- as 0.
     | isZero a == Just True && isRight (recursiveExceptionallyEvaluate b) -> Right $ ExpRatio 0
+    | e a == e b && isRight (e a) -> Right $ Ap2 Exponent a $ ExpRatio 2
+      where e = recursiveExceptionallyEvaluate
   Ap2 Sum a (Ap1 Negate b)
     | e a == e b -> Right $ ExpRatio 0
     where e = recursiveExceptionallyEvaluate
