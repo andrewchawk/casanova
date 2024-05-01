@@ -423,8 +423,8 @@ isCommutative Sum = True
 isCommutative Product = True
 isCommutative _ = False
 
--- | @factors n@ is a list of all prime factors of @n@, barring 1 and @n@.  The
--- input must be nonnegative.
+-- | @factors n@ is a list of all prime factors of @n@.  The input must be
+-- nonnegative.
 factors :: Integer -> [Integer]
 factors n = maybe [n] (\x -> concat $ map factors [x, n `div` x]) $ divisors n
   where divisors n = listToMaybe $ filter (\x -> n `mod` x == 0) [2..n-1]
