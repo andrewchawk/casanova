@@ -51,6 +51,7 @@ main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
     testsForExpRatio ++
     testsForIntegral ++
     testsForExponents ++
+    testsForGenericInequality ++
      map (\(a,b,c) -> (a,b,c,True)) [("0/0",
       (\z -> Ap2Quotient z z) $ ExpRatio 0,
       Nothing),
@@ -251,3 +252,20 @@ testsForExponents =
    ("5^(-2)",
     Ap2 Exponent (ExpRatio 5) $ ExpRatio (-2),
     Just $ ExpRatio $ 1 % (5 ^ 2))]
+
+-- | These tests ensure that some things which should not be marked as being
+-- equal really /are not/ marked as being equal.
+testsForGenericInequality :: [TestCase]
+testsForGenericInequality = map (\(a,b,c) -> (a,b,c,False)) $
+  [("3/2 /= 2/3",
+   Ap2Quotient (ExpRatio 3) $ ExpRatio 2,
+   Just $ Ap2Quotient (ExpRatio 2) $ ExpRatio 3),
+  ("5 /= 6",
+   ExpRatio 5,
+   ExpRatio 6)
+  ("infinity /= -infinity",
+   Infinity,
+   Just $ Ap1 Negate Infinity),
+  ("a^b /= b^a",
+   Ap2 Exponent (Variable "a") $ Variable "b",
+   Just $ Ap2 Exponent (Variable "b") $ Variable "a")]

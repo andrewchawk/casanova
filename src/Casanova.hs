@@ -264,8 +264,6 @@ exceptionallyEvaluate o = case o of
     | a == b -> Right $ Ap2 Exponent b $ Ap2 Sum e $ ExpRatio 1
   Ap2 Product (Ap2 Exponent b1 e1) (Ap2 Exponent b2 e2)
     | b1 == b2 -> Right $ Ap2 Exponent b1 $ Ap2 Sum e1 e2
-  Ap2 Product a (Ap2 Product b c)
-    | a == b && b /= c -> Right $ Ap2 Product (Ap2 Product a b) c
   Ap2 Product a b
     | Infinity `elem` [a,b] -> Right o
     | isOne a == Just True -> Right b
@@ -283,6 +281,11 @@ exceptionallyEvaluate o = case o of
       -- multiplication expressions.
     | a2 == b2 && isRight a2 -> Right $ Ap2 Product (ExpRatio 2) a
     where [a2,b2] = map recursiveExceptionallyEvaluate [a,b]
+  Ap2 f a (Ap2 f2 b c)
+    | f == f2 && isAssociative f && e o2 /= Right o2 -> Right o2
+      where
+      e = exceptionallyEvaluate
+      o2 = Ap2 f (Ap2 f a b) c
   Ap2 f a b -> Ap2 f <$> exceptionallyEvaluate a <*> exceptionallyEvaluate b
 
 -- | @exceptionallyEvaluateDiff x m@ is the result of doing a single step of
@@ -463,6 +466,13 @@ isCommutative :: FunctionM2 -> Bool
 isCommutative Sum = True
 isCommutative Product = True
 isCommutative _ = False
+
+-- | @isAssociative x@ is 'True' if and only if @x@ represents an associative
+-- function.
+isAssociative :: FunctionM2 -> Bool
+isAssociative Sum = True
+isAssociative Product = True
+isAssociative _ = False
 
 -- | @factors n@ is a list of all prime factors of @n@.  The input must be
 -- nonnegative.
