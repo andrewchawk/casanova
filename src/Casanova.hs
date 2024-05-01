@@ -5,6 +5,7 @@ module Casanova where
 import Data.Ratio
 import Data.Either
 import Data.Maybe
+import Control.Monad
 
 -- | This datatype facilitates error handling.  @Left@ values indicate -- and
 -- contain useful descriptions of -- errors which are encountered when
@@ -415,6 +416,42 @@ recursiveExceptionallyEvaluate x = either Left recurse e
   where
   e = commutativeEvaluate x
   recurse x2 = if x2 == x then Right x else recursiveExceptionallyEvaluate x2
+
+-- | For all appropriate values @n@, @traceEvaluate !! (n + 1)@ is the result of
+-- performing on @traceEvaluate e !! n@ single evaluation step.  The first
+-- element and the last element are the input expression and the maximally
+-- simple equivalent of the input expression, respectively.
+traceEvaluate :: Expression -> [Exceptional Expression]
+traceEvaluate = nonRepeatingPortion . iterate (commutativeEvaluate =<<) . Right
+  where
+  nonRepeatingPortion :: Eq a => [a] -> [a]
+  nonRepeatingPortion = reverse . nrpHelper []
+    where
+    nrpHelper :: Eq a => [a] -> [a] -> [a]
+    nrpHelper possibleOut [] = possibleOut
+    nrpHelper possibleOut (x:xs)
+      | x `elem` possibleOut = possibleOut
+      | otherwise = nrpHelper (x : possibleOut) xs
+
+-- | Casanova determines that @a@ is equivalent to @b@ if and only if
+-- @definitelyEquals a b@ is 'Right True'.
+definitelyEquals :: Expression -> Expression -> Exceptional Bool
+definitelyEquals a' b' = (\a b -> or $ tests a b) <$> a2 <*> b2
+  where
+  [a2,b2] = map recursiveExceptionallyEvaluate [a',b']
+  tests :: Expression -> Expression -> [Bool]
+  tests a b =
+    [a == b,
+     -- The inequality checks of the following line prevent infinite recursion.
+     ((e a /= Right a || e b /= Right b) &&
+      (Right True == (join $ definitelyEquals <$> e a <*> e b))),
+     commutativityCheck a b]
+    where e = recursiveExceptionallyEvaluate
+  commutativityCheck :: Expression -> Expression -> Bool
+  commutativityCheck (Ap2 f x y) (Ap2 f2 x2 y2)
+    | f == f2 && isCommutative f = Ap2 f x y == Ap2 f2 y2 x2
+    | otherwise = False
+  commutativityCheck _ _ = False
 
 -- | @isCommutative x@ is 'True' if and only if @x@ represents a commutative
 -- function.
