@@ -217,6 +217,9 @@ exceptionallyEvaluate o = case o of
   Ap1 Negate (ExpRatio n) -> Right $ ExpRatio (- n)
   Ap1 f x -> Ap1 f <$> exceptionallyEvaluate x
   Ap2 (Flip f) x y -> Right $ Ap2 f y x
+  Ap2Quotient (ExpRatio a) (ExpRatio b)
+    | b == 0 -> Left $ "I tried compute " ++ show a ++ "/" ++ show b ++ "!"
+    | otherwise -> Right $ ExpRatio $ a / b
   Ap2 Exponent (Ap2 Exponent b e1) e2 -> Right $ Ap2 Exponent b $ Ap2 Product e1 e2
   Ap2 Exponent e (Ap2 Logarithm x b)
     | r b == r e && isRight (r b) -> Right x

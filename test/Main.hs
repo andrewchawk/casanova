@@ -75,6 +75,9 @@ main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
       Ap2 Logarithm (Ap2 Exponent (Variable "a") (Variable "b")) (Variable "c"),
       Just $ Ap2 Product (Variable "b") $
         Ap2 Logarithm (Variable "a") (Variable "c")),
+     ("2/3",
+      Ap2Quotient (ExpRatio 2) $ ExpRatio 3,
+      Just $ ExpRatio $ 2 % 3),
      ("g ^ log(e,g)",
       Ap2 Exponent (Variable "g") $ Ap2 Logarithm (Variable "e") (Variable "g"),
       Just $ Variable "e")]
@@ -249,6 +252,13 @@ testsForExponents =
    ("8^(1/2)",
     Ap2 Exponent (ExpRatio 8) $ ExpRatio $ 1 % 2,
     Just $ Ap2 Exponent (ExpRatio 2) $ ExpRatio $ 3 % 2),
+   ("((2^50)^(1/3))^50",
+    Ap2 Exponent ((Ap2 Exponent (ExpRatio $ 2 ^ 50) $ ExpRatio $ 1 % 3)) $ ExpRatio 50,
+    Just $ Ap2 Exponent (ExpRatio 4) $ Ap2Quotient (ExpRatio 1250) $ ExpRatio 3),
+   ("(9^9)^(1/2), where both exponentiation arguments are unevaluated",
+    Ap2 Exponent (Ap2 Exponent (ExpRatio 9) (ExpRatio 9))
+                 (Ap2Quotient (ExpRatio 1) $ ExpRatio 2),
+    Just $ ExpRatio 19683),
    ("5^(-2)",
     Ap2 Exponent (ExpRatio 5) $ ExpRatio (-2),
     Just $ ExpRatio $ 1 % (5 ^ 2))]
