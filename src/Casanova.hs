@@ -226,6 +226,9 @@ exceptionallyEvaluate o = case o of
       "I tried to compute " ++ input ++ ", but raising 0 to a non-positive " ++
       "exponent is undefined."
       where input = "(" ++ show b ++ ") ^ (" ++ show (ExpRatio e) ++ ")"
+  Ap2 Exponent (Ap2 Product (Ap2 Exponent b1 e1) p) (ExpRatio e2)
+    | e (Ap2Quotient (ExpRatio 1) e1) == Right (ExpRatio e2) -> Right $ Ap2 Product b1 $ Ap2 Exponent p $ ExpRatio e2
+      where e = recursiveExceptionallyEvaluate
   Ap2 Exponent (ExpRatio x) (ExpRatio y)
     -- The subtraction and addition ensure that exponents of 1 are ignored
     -- within @iterate2@.
@@ -236,8 +239,10 @@ exceptionallyEvaluate o = case o of
       denominator y > 1 &&
       numerator y == 1 &&
       isJust sufficientN ->
-      Right $ Ap2 Product (ExpRatio $ sufficientN' % 1)
-                          (Ap2 Exponent newRadicand $ ExpRatio y)
+      Right $ Ap2 Exponent (Ap2 Product (Ap2 Exponent (ExpRatio $ sufficientN' % 1)
+                                                      (ExpRatio $ denominator y % 1))
+                                        newRadicand)
+                            (ExpRatio y)
       where
       -- In the guard, we check that sufficientN is actually a Just value, so
       -- the following use of fromJust is fine.
