@@ -262,7 +262,7 @@ testsForGenericInequality = map (\(a,b,c) -> (a,b,c,False)) $
    Just $ Ap2Quotient (ExpRatio 2) $ ExpRatio 3),
   ("5 /= 6",
    ExpRatio 5,
-   ExpRatio 6)
+   Just $ ExpRatio 6),
   ("infinity /= -infinity",
    Infinity,
    Just $ Ap1 Negate Infinity),
