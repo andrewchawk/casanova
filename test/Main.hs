@@ -223,6 +223,10 @@ testsForExponents =
   map (\(a,b,c) -> (a,b,c,True)) [("n^1",
     Ap2 Exponent (Variable "n") $ ExpRatio 1,
     Just $ Variable "n"),
+   ("a^b * a^c",
+    Ap2 Product (Ap2 Exponent (Variable "a") $ Variable "b")
+                (Ap2 Exponent (Variable "a") $ Variable "c"),
+    Just $ Ap2 Exponent (Variable "a") $ Variable "b" + Variable "c"),
    ("infinity^0",
     Ap2 Exponent Infinity $ ExpRatio 0,
     Just $ ExpRatio 1),
@@ -255,10 +259,27 @@ testsForExponents =
    ("((2^50)^(1/3))^50",
     Ap2 Exponent ((Ap2 Exponent (ExpRatio $ 2 ^ 50) $ ExpRatio $ 1 % 3)) $ ExpRatio 50,
     Just $ Ap2 Exponent (ExpRatio 4) $ Ap2Quotient (ExpRatio 1250) $ ExpRatio 3),
+   ("a^(1/2), where the right exponentation argument is an Ap2Quotient value",
+    Ap2 Exponent (Variable "a") $ Ap2Quotient (ExpRatio 1) $ ExpRatio 2,
+    Just $ Ap2 Exponent (Variable "a") $ ExpRatio $ 1 % 2),
+   ("(9^9)^(1/2)",
+    Ap2 Exponent (ExpRatio $ 9 ^ 9 % 1) $ ExpRatio $ 1 % 2,
+    Just $ ExpRatio 19683),
+   ("(9^9)^(1/2), where the left exponentiation argument is unevaluated",
+    Ap2 Exponent (Ap2 Exponent (ExpRatio 9) (ExpRatio 9))
+                 (ExpRatio $ 1 % 2),
+    Just $ ExpRatio 19683),
+   ("(9^9)^(1/2), where the right exponentiation argument is unevaluated",
+    Ap2 Exponent (ExpRatio $ 9 ^ 9)
+                 (Ap2Quotient (ExpRatio 1) $ ExpRatio 2),
+    Just $ ExpRatio 19683),
    ("(9^9)^(1/2), where both exponentiation arguments are unevaluated",
     Ap2 Exponent (Ap2 Exponent (ExpRatio 9) (ExpRatio 9))
                  (Ap2Quotient (ExpRatio 1) $ ExpRatio 2),
     Just $ ExpRatio 19683),
+   ("(9^9)^a, where the left exponentation argument is unevaluated",
+    Ap2 Exponent (Ap2 Exponent (ExpRatio 9) $ ExpRatio 9) $ Variable "a",
+    Just $ Ap2 Exponent (ExpRatio 9) $ Ap2 Product (ExpRatio 9) $ Variable "a"),
    ("5^(-2)",
     Ap2 Exponent (ExpRatio 5) $ ExpRatio (-2),
     Just $ ExpRatio $ 1 % (5 ^ 2))]
