@@ -371,17 +371,22 @@ exceptionallyEvaluateLimit x n m = case m of
   -- sense.  This limit is by definition Euler's number, and no real problems
   -- with this simplification are known to the author.  However, ooh-wee, this
   -- case /is/ mighty ugly!
+  _
+    | subst1 x n m == m -> Right m
   Ap2 Exponent
     (Ap2 Sum n1 (Ap2Quotient n2 (Variable m1)))
     (Variable m2)
     | [m1,m2] == [x,x] &&  [n1, n2] == replicate 2 (ExpRatio 1) -> Right Euler
   Variable x2 -> Right $ if x == x2 then n else Ap1 (Limit x n) m
   Ap2Quotient m1 m2
-    | map (isInfinity . subst1 x n) [m1,m2] == [Just True, Just False] ->
+    | map (isInfinity . subst1 x n) [m1,m2] == [Just True, Just False] &&
+      subst1 x n m1 /= m1 ->
       Right Infinity
-    | map (isInfinity . subst1 x n) [m1,m2] == [Just False, Just True] ->
+    | map (isInfinity . subst1 x n) [m1,m2] == [Just False, Just True] &&
+      subst1 x n m2 /= m2 ->
       Right $ ExpRatio 0
-    | map (isZero . subst1 x n) [m1,m2] == [Just False, Just True] ->
+    | map (isZero . subst1 x n) [m1,m2] == [Just False, Just True] &&
+      subst1 x n m2 /= m2 ->
       Right Infinity
     | map (isZero . subst1 x n) [m1,m2] == [Just True, Just False] ->
       Right $ ExpRatio 0
@@ -396,9 +401,7 @@ exceptionallyEvaluateLimit x n m = case m of
   Ap2 Sum m1 m2 -> Right $ Ap2 Sum (l m1) (l m2)
     where l = Ap1 $ Limit x n
   ExpRatio b -> Right m
-  _
-    | subst1 x n m == m -> Right m
-    | otherwise -> Ap1 (Limit x n) <$> exceptionallyEvaluate m
+  _ -> Ap1 (Limit x n) <$> exceptionallyEvaluate m
 
 -- | @exceptionallyEvaluateIntegral x m@ is the result of doing a single step of
 -- evaluation on @Ap1 (Integral x) m@.
