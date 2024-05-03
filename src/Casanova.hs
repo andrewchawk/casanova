@@ -188,6 +188,21 @@ isOne x = either (const Nothing) recurseIfDifferent $ e x
   e = recursiveExceptionallyEvaluate
   recurseIfDifferent x2 = if x2 == x then Nothing else isOne x2
 
+-- | @isInfinity x@ is @'Just' 'True'@ if and only if @x@ is definitely
+-- infinity.  @isInfinity x@ is @'Just' 'False'@ if and only if @x@ is
+-- definitely /not/ infinity.  @isInfinity x@ is @'Nothing'@ if and only if such
+-- a judgement is infeasible or outright impossible.
+isInfinity :: Expression -> Maybe Bool
+isInfinity Infinity = Just True
+isInfinity (Variable _) = Nothing
+isInfinity (ExpRatio _) = Just False
+isInfinity (Ap1 Negate Infinity) = Just True
+isInfinity x = either (const Nothing) recurseIfDifferent $ e x
+  where
+  e = recursiveExceptionallyEvaluate
+  recurseIfDifferent x2 = if x2 == x then Nothing else isInfinity x2
+
+
 -- | If the input contains even a single 'Right' value, then the output is the
 -- first such 'Right' value.  Otherwise, the output is basically just a
 -- concatenation of the error descriptions.
@@ -218,8 +233,12 @@ exceptionallyEvaluate o = case o of
   Ap1 f x -> Ap1 f <$> exceptionallyEvaluate x
   Ap2 (Flip f) x y -> Right $ Ap2 f y x
   Ap2Quotient (ExpRatio a) (ExpRatio b)
+    | a < 0 -> Right $ Ap1 Negate $ Ap2Quotient (ExpRatio $ abs a) $ ExpRatio b
+    | b < 0 -> Right $ Ap1 Negate $ Ap2Quotient (ExpRatio a) $ ExpRatio $ abs b
     | b == 0 -> Left $ "I tried compute " ++ show a ++ "/" ++ show b ++ "!"
     | otherwise -> Right $ ExpRatio $ a / b
+  Ap2Quotient (Ap1 Negate a) b -> Right $ Ap1 Negate $ Ap2Quotient a b
+  Ap2Quotient a (Ap1 Negate b) -> Right $ Ap1 Negate $ Ap2Quotient a b
   Ap2 Exponent (Ap2 Exponent b e1) e2 -> Right $ Ap2 Exponent b $ Ap2 Product e1 e2
   Ap2 Exponent e (Ap2 Logarithm x b)
     | r b == r e && isRight (r b) -> Right x
@@ -357,6 +376,15 @@ exceptionallyEvaluateLimit x n m = case m of
     (Variable m2)
     | [m1,m2] == [x,x] &&  [n1, n2] == replicate 2 (ExpRatio 1) -> Right Euler
   Variable x2 -> Right $ if x == x2 then n else Ap1 (Limit x n) m
+  Ap2Quotient m1 m2
+    | map (isInfinity . subst1 x n) [m1,m2] == [Just True, Just False] ->
+      Right Infinity
+    | map (isInfinity . subst1 x n) [m1,m2] == [Just False, Just True] ->
+      Right $ ExpRatio 0
+    | map (isZero . subst1 x n) [m1,m2] == [Just False, Just True] ->
+      Right Infinity
+    | map (isZero . subst1 x n) [m1,m2] == [Just True, Just False] ->
+      Right $ ExpRatio 0
   Ap2Quotient m1 m2 -> exceptionalSequence $ map recursiveExceptionallyEvaluate
     [Ap2Quotient (Ap1 (Limit x n) m1) (Ap1 (Limit x n) m2),
      Ap1 (Limit x n) $ Ap2Quotient
