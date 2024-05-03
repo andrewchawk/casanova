@@ -55,6 +55,11 @@ main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
      map (\(a,b,c) -> (a,b,c,True)) [("0/0",
       (\z -> Ap2Quotient z z) $ ExpRatio 0,
       Nothing),
+     ("(1/2) / (4/8), where both division arguments are unevaluated",
+      Ap2Quotient
+        (Ap2Quotient (ExpRatio 1) $ ExpRatio 2)
+        (Ap2Quotient (ExpRatio 4) $ ExpRatio 8),
+      Just $ ExpRatio 1),
      ("(^2) $ (-1)^(1/2)",
       let i = Ap2 Exponent (ExpRatio (-1)) $ ExpRatio $ 1 % 2 in
       Ap2 Exponent i $ ExpRatio 2,
@@ -118,6 +123,16 @@ testsForLimit =
   map (\(a,b,c) -> (a,b,c,True)) [("Limit of infinity as x approaches infinity",
     Ap1 (Limit "x" Infinity) Infinity,
     Just Infinity),
+   ("Limit of x^0 as x approaches infinity",
+    Ap1 (Limit "x" Infinity) $ Ap2 Exponent (Variable "x") $ ExpRatio 0,
+    Just $ ExpRatio 1),
+   ("Limit of x^0 as x approaches zero",
+    Ap1 (Limit "x" $ ExpRatio 0) $ Ap2 Exponent (Variable "x") $ ExpRatio 0,
+    Just $ ExpRatio 1),
+   ("Limit of x^0 as x approaches sqrt(-1)",
+    Ap1 (Limit "x" $ Ap2 Exponent (ExpRatio (-1)) $ ExpRatio $ 1 % 2)
+        (Ap2 Exponent (Variable "x") $ ExpRatio 0),
+    Just $ ExpRatio 1),
    ("Limit of infinity/5 as x approaches zero",
     Ap1 (Limit "x" $ ExpRatio 0) $ Ap2Quotient Infinity $ ExpRatio 5,
     Just $ Ap2Quotient Infinity $ ExpRatio 5),
