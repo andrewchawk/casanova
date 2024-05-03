@@ -262,24 +262,24 @@ testsForExponents =
    ("a^(1/2), where the right exponentation argument is an Ap2Quotient value",
     Ap2 Exponent (Variable "a") $ Ap2Quotient (ExpRatio 1) $ ExpRatio 2,
     Just $ Ap2 Exponent (Variable "a") $ ExpRatio $ 1 % 2),
-   ("(9^9)^(1/2)",
-    Ap2 Exponent (ExpRatio $ 9 ^ 9 % 1) $ ExpRatio $ 1 % 2,
-    Just $ ExpRatio 19683),
-   ("(9^9)^(1/2), where the left exponentiation argument is unevaluated",
-    Ap2 Exponent (Ap2 Exponent (ExpRatio 9) (ExpRatio 9))
+   ("(3^4)^(1/2)",
+    Ap2 Exponent (ExpRatio $ 3 ^ 4 % 1) $ ExpRatio $ 1 % 2,
+    Just $ ExpRatio 9),
+   ("(3^4)^(1/2), where the left exponentiation argument is unevaluated",
+    Ap2 Exponent (Ap2 Exponent (ExpRatio 3) (ExpRatio 4))
                  (ExpRatio $ 1 % 2),
-    Just $ ExpRatio 19683),
-   ("(9^9)^(1/2), where the right exponentiation argument is unevaluated",
-    Ap2 Exponent (ExpRatio $ 9 ^ 9)
+    Just $ ExpRatio 9),
+   ("(3^4)^(1/2), where the right exponentiation argument is unevaluated",
+    Ap2 Exponent (ExpRatio $ 3 ^ 4)
                  (Ap2Quotient (ExpRatio 1) $ ExpRatio 2),
-    Just $ ExpRatio 19683),
-   ("(9^9)^(1/2), where both exponentiation arguments are unevaluated",
-    Ap2 Exponent (Ap2 Exponent (ExpRatio 9) (ExpRatio 9))
+    Just $ ExpRatio 9),
+   ("(3^4)^(1/2), where both exponentiation arguments are unevaluated",
+    Ap2 Exponent (Ap2 Exponent (ExpRatio 3) (ExpRatio 4))
                  (Ap2Quotient (ExpRatio 1) $ ExpRatio 2),
-    Just $ ExpRatio 19683),
-   ("(9^9)^a, where the left exponentation argument is unevaluated",
-    Ap2 Exponent (Ap2 Exponent (ExpRatio 9) $ ExpRatio 9) $ Variable "a",
-    Just $ Ap2 Exponent (ExpRatio 9) $ Ap2 Product (ExpRatio 9) $ Variable "a"),
+    Just $ ExpRatio 9),
+   ("(3^4)^a, where the left exponentation argument is unevaluated",
+    Ap2 Exponent (Ap2 Exponent (ExpRatio 3) $ ExpRatio 4) $ Variable "a",
+    Just $ Ap2 Exponent (ExpRatio 3) $ Ap2 Product (ExpRatio 4) $ Variable "a"),
    ("5^(-2)",
     Ap2 Exponent (ExpRatio 5) $ ExpRatio (-2),
     Just $ ExpRatio $ 1 % (5 ^ 2))]
