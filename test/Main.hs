@@ -83,6 +83,9 @@ main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
      ("2/3",
       Ap2Quotient (ExpRatio 2) $ ExpRatio 3,
       Just $ ExpRatio $ 2 % 3),
+     ("-5 * -a",
+      Ap2 Product (ExpRatio (-5)) $ Ap1 Negate $ Variable "a",
+       Just $ Ap2 Product (ExpRatio 5) $ Variable "a"),
      ("g ^ log(e,g)",
       Ap2 Exponent (Variable "g") $ Ap2 Logarithm (Variable "e") (Variable "g"),
       Just $ Variable "e")]
