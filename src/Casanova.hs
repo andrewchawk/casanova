@@ -12,6 +12,13 @@ import Control.Monad
 -- computing.  @Right@ values contain legitimate results.
 type Exceptional a = Either String a
 
+-- | This type should be pretty self-explanatory.  :-)
+data Sign =
+  Positive |
+  Negative |
+  Zero
+  deriving (Show, Eq)
+
 -- | Each value of type 'Expression' is a real number /or/ positive or negative
 -- infinity.
 --
@@ -202,6 +209,24 @@ isInfinity x = either (const Nothing) recurseIfDifferent $ e x
   e = recursiveExceptionallyEvaluate
   recurseIfDifferent x2 = if x2 == x then Nothing else isInfinity x2
 
+-- | @expressionSign x@ is @'Just' 'Positive'@ if and only if @x@ is definitely
+-- positive.  @expressionSign x@ is @'Just' 'Negative'@ if and only if @x@ is
+-- definitely negative.  @expressionSign x@ is @'Nothing'@ if and only if the
+-- sign of @x@ cannot be reliably determined.
+expressionSign :: Expression -> Maybe Sign
+expressionSign (ExpRatio x)
+  | x > 0 = Just Positive
+  | x < 0 = Just Negative
+  | otherwise = Nothing
+expressionSign (Variable _) = Nothing
+expressionSign Infinity = Just Positive
+expressionSign Euler = Just Positive
+expressionSign (Ap1 Negate x) = negate <$> expressionSign x
+  where
+  negate Positive = Negative
+  negate Negative = Positive
+  negate Zero = Zero
+expressionSign _ = Nothing
 
 -- | If the input contains even a single 'Right' value, then the output is the
 -- first such 'Right' value.  Otherwise, the output is basically just a
@@ -239,6 +264,8 @@ exceptionallyEvaluate o = case o of
     | otherwise -> Right $ ExpRatio $ a / b
   Ap2Quotient (Ap1 Negate a) b -> Right $ Ap1 Negate $ Ap2Quotient a b
   Ap2Quotient a (Ap1 Negate b) -> Right $ Ap1 Negate $ Ap2Quotient a b
+  Ap2Quotient l@(Ap2Quotient a b) (Ap2Quotient c d) -> Right $
+    Ap2 Product l $ Ap2Quotient d c
   Ap2 Exponent (Ap2 Exponent b e1) e2 -> Right $ Ap2 Exponent b $ Ap2 Product e1 e2
   Ap2 Exponent e (Ap2 Logarithm x b)
     | r b == r e && isRight (r b) -> Right x
@@ -291,7 +318,13 @@ exceptionallyEvaluate o = case o of
     | a == b -> Right $ Ap2 Exponent b $ Ap2 Sum e $ ExpRatio 1
   Ap2 Product (Ap2 Exponent b1 e1) (Ap2 Exponent b2 e2)
     | b1 == b2 -> Right $ Ap2 Exponent b1 $ Ap2 Sum e1 e2
+  Ap2 Product (Ap2Quotient a b) (Ap2Quotient c d) -> Right $
+    Ap2Quotient (Ap2 Product a c) $ Ap2 Product b d
+  Ap2 Product a (Ap1 Negate b)
+    | expressionSign a == Just Negative -> Right $ Ap2 Product (Ap1 Negate a) b
   Ap2 Product a b
+    | expressionSign a == expressionSign b && expressionSign a == Just Negative ->
+      Right $ Ap2 Product a b
     | Infinity `elem` [a,b] -> Right o
     | isOne a == Just True -> Right b
       -- The following isRight check ensures that 0 * 0^(-1) is not evaluated
@@ -396,12 +429,20 @@ exceptionallyEvaluateLimit x n m = case m of
        (Ap1 (Diff x) m1)
        (Ap1 (Diff x) m2),
      subst1 x n m]
+  Ap2 Exponent m1 m2
+    | isInfinity m1 == Just True && isZero m2 == Just False &&
+      expressionSign m2 == Just Positive -> Right Infinity
   Ap2 Product m1 m2 -> Right $ Ap2 Product (l m1) (l m2)
     where l = Ap1 $ Limit x n
-  Ap2 Sum m1 m2 -> Right $ Ap2 Sum (l m1) (l m2)
-    where l = Ap1 $ Limit x n
+  Ap2 Sum m1 m2
+    | isInfinity m1 == Just True && isInfinity m2 == Just False -> Right Infinity
+    | otherwise -> Right $ Ap2 Sum (l m1) (l m2)
+      where l = Ap1 $ Limit x n
   ExpRatio b -> Right m
-  _ -> Ap1 (Limit x n) <$> exceptionallyEvaluate m
+  _
+    -- | exceptionallyEvaluate (subst1 x n m) /= Right (subst1 x n m) ->
+      -- Right $ subst1 x n m
+    | otherwise -> Ap1 (Limit x n) <$> exceptionallyEvaluate m
 
 -- | @exceptionallyEvaluateIntegral x m@ is the result of doing a single step of
 -- evaluation on @Ap1 (Integral x) m@.
