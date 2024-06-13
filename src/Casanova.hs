@@ -415,7 +415,7 @@ exceptionallyEvaluateDiff x m
     Ap1 Cot m2
       | m2 == Variable x -> Right $ Ap1 Negate $ square $ Ap1 Csc m2
       where square x = Ap2 Exponent x $ ExpRatio 2
-    _ -> Right $ Ap1 (Diff x) m
+    _ -> Ap1 (Diff x) <$> exceptionallyEvaluate m
 
 -- | @exceptionallyEvaluateLimit x n m@ is the result of doing a single
 -- evaluation step on @Ap1 (Limit x n) m@.
