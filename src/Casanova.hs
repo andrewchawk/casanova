@@ -324,7 +324,7 @@ exceptionallyEvaluate o = case o of
     | expressionSign a == Just Negative -> Right $ Ap2 Product (Ap1 Negate a) b
   Ap2 Product a b
     | expressionSign a == expressionSign b && expressionSign a == Just Negative ->
-      Right $ Ap2 Product a b
+      Right $ Ap2 Product (Ap1 Negate a) $ Ap1 Negate b
     | Infinity `elem` [a,b] -> Right o
     | isOne a == Just True -> Right b
       -- The following isRight check ensures that 0 * 0^(-1) is not evaluated
