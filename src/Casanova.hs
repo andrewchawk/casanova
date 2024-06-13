@@ -310,6 +310,29 @@ exceptionallyEvaluate o = case o of
     | isOne b == Just True -> Right $ ExpRatio 1
     | isZero b == Just True && isZero e == Just False -> Right $ ExpRatio 0
   Ap2 Logarithm (Ap2 Exponent b e) n -> Right $ Ap2 Product e $ Ap2 Logarithm b n
+  o@(Ap2 Product _ _) -> exceptionallyEvaluateProduct o
+  Ap2 Sum a (Ap1 Negate b)
+    | e a == e b -> Right $ ExpRatio 0
+    where e = recursiveExceptionallyEvaluate
+  Ap2 Sum (ExpRatio a) (ExpRatio b) -> Right $ ExpRatio $ a + b
+  Ap2 Sum a b
+      -- The evaluation is just useful for combining addition expressions into
+      -- multiplication expressions.
+    | a2 == b2 && isRight a2 -> Right $ Ap2 Product (ExpRatio 2) a
+    where [a2,b2] = map recursiveExceptionallyEvaluate [a,b]
+  Ap2 f a (Ap2 f2 b c)
+    | f == f2 && isAssociative f && e o2 /= Right o2 -> Right o2
+      where
+      e = exceptionallyEvaluate
+      o2 = Ap2 f (Ap2 f a b) c
+  Ap2 f a b -> Ap2 f <$> exceptionallyEvaluate a <*> exceptionallyEvaluate b
+
+-- | If @e@ is a 'Product' expression, then @exceptionallyEvaluateProduct e@
+-- is the result of performing a single evaluation step on @e@.  Otherwise,
+-- @exceptionallyEvaluate e@ is a 'Left' value which indicates that the input
+-- is inappropriate.
+exceptionallyEvaluateProduct :: Expression -> Exceptional Expression
+exceptionallyEvaluateProduct o = case o of
   Ap2 Product (Ap1 Negate a) b
       -- The following check is good for evaluating expressions like -5 * -a;
       -- without this split in processing, the following evaluation steps occur:
@@ -344,21 +367,10 @@ exceptionallyEvaluate o = case o of
     | isZero a == Just True && isRight (recursiveExceptionallyEvaluate b) -> Right $ ExpRatio 0
     | e a == e b && isRight (e a) -> Right $ Ap2 Exponent a $ ExpRatio 2
       where e = recursiveExceptionallyEvaluate
-  Ap2 Sum a (Ap1 Negate b)
-    | e a == e b -> Right $ ExpRatio 0
-    where e = recursiveExceptionallyEvaluate
-  Ap2 Sum (ExpRatio a) (ExpRatio b) -> Right $ ExpRatio $ a + b
-  Ap2 Sum a b
-      -- The evaluation is just useful for combining addition expressions into
-      -- multiplication expressions.
-    | a2 == b2 && isRight a2 -> Right $ Ap2 Product (ExpRatio 2) a
-    where [a2,b2] = map recursiveExceptionallyEvaluate [a,b]
-  Ap2 f a (Ap2 f2 b c)
-    | f == f2 && isAssociative f && e o2 /= Right o2 -> Right o2
-      where
-      e = exceptionallyEvaluate
-      o2 = Ap2 f (Ap2 f a b) c
-  Ap2 f a b -> Ap2 f <$> exceptionallyEvaluate a <*> exceptionallyEvaluate b
+  Ap2 Product a b -> Ap2 Product <$> exceptionallyEvaluate a <*> exceptionallyEvaluate b
+  _ -> Left $ "A non-Product expression was used as the input for \
+              \exceptionallyEvaluateProduct!  Specifically, the expression is \
+              \as follows:" ++ show o
 
 -- | @exceptionallyEvaluateDiff x m@ is the result of doing a single step of
 -- evaluation on @Ap1 (Diff x) m@.
