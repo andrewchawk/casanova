@@ -424,12 +424,12 @@ exceptionallyEvaluateLimit :: String
                            -> Expression
                            -> Exceptional Expression
 exceptionallyEvaluateLimit x n m = case m of
+  _
+    | subst1 x n m == m -> Right m
   -- The following thing is kind of nasty but makes at least /some/ degree of
   -- sense.  This limit is by definition Euler's number, and no real problems
   -- with this simplification are known to the author.  However, ooh-wee, this
   -- case /is/ mighty ugly!
-  _
-    | subst1 x n m == m -> Right m
   Ap2 Exponent
     (Ap2 Sum n1 (Ap2Quotient n2 (Variable m1)))
     (Variable m2)
