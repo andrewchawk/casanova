@@ -310,7 +310,19 @@ exceptionallyEvaluate o = case o of
     | isOne b == Just True -> Right $ ExpRatio 1
     | isZero b == Just True && isZero e == Just False -> Right $ ExpRatio 0
   Ap2 Logarithm (Ap2 Exponent b e) n -> Right $ Ap2 Product e $ Ap2 Logarithm b n
-  Ap2 Product (Ap1 Negate a) b -> Right $ Ap1 Negate $ Ap2 Product a b
+  Ap2 Product (Ap1 Negate a) b
+      -- The following check is good for evaluating expressions like -5 * -a;
+      -- without this split in processing, the following evaluation steps occur:
+      --
+      -- - -5 * -a
+      -- - (- (- 5)) * a
+      -- - - (-5 * a)
+      --
+      -- This situation is suboptimal.  This solution is a bit nasty, but the
+      -- result is at least sane.
+    | exceptionallyEvaluate (Ap1 Negate a) /= Right (Ap1 Negate a) ->
+      (\ e -> Ap2 Product e b) <$> exceptionallyEvaluate (Ap1 Negate a)
+    | otherwise -> Right $ Ap1 Negate $ Ap2 Product a b
   Ap2 Product (ExpRatio a) (ExpRatio b) -> Right $ ExpRatio $ a * b
   Ap2 Product ra@(ExpRatio a) (Ap2 Product rb@(ExpRatio b) c) -> Right $
     Ap2 Product (Ap2 Product ra rb) c
