@@ -19,7 +19,7 @@ checkExpEquality :: Expression
                  -> Maybe (Exceptional Expression)
 checkExpEquality x (Just y) c = if x `definitelyEquals` y == Right c then
                    Nothing else
-                   Just $ exceptionallyEvaluate x
+                   Just $ recursiveExceptionallyEvaluate x
 checkExpEquality x Nothing _ = if isLeft e then Nothing else Just e
   where
   e = recursiveExceptionallyEvaluate x
@@ -93,8 +93,8 @@ main = maybe exitSuccess (\t -> printFailMsg t >> exitFailure) equalChkResults
       Ap2 Product (ExpRatio (-5)) $ Ap1 Negate $ Variable "a",
        Just $ Ap2 Product (ExpRatio 5) $ Variable "a"),
      ("-5 * (d * -b)",
-      Ap2 Product (ExpRatio (-5)) $ Ap2 Product (Variable "d") $ Ap1 Negate $ Variable "d",
-      Just $ Ap2 Product (ExpRatio 5) (Variable "d")),
+      Ap2 Product (ExpRatio (-5)) $ Ap2 Product (Variable "d") $ Ap1 Negate $ Variable "b",
+      Just $ Ap2 Product (ExpRatio 5) $ Ap2 Product (Variable "d") $ Variable "b"),
      ("g ^ log(e,g)",
       Ap2 Exponent (Variable "g") $ Ap2 Logarithm (Variable "e") (Variable "g"),
       Just $ Variable "e")]
